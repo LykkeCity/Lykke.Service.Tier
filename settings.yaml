@@ -1,0 +1,26 @@
+TierService:
+  Db:
+    LogsConnString:
+      settings-key: TierService-LogsConnString
+      types: [AzureTableStorage]
+  Countries:
+    LowRisk:
+      settings-key: TierService-Countries-LowRisk
+      types: [JsonArray]
+    MidRisk:
+      settings-key: TierService-Countries-MidRisk
+      types: [JsonArray]
+    HighRisk:
+      settings-key: TierService-Countries-HighRisk
+      types: [JsonArray]
+SlackNotifications:
+  AzureQueue:
+    ConnectionString:
+      settings-key: SlackNotificationsConnString
+      types: [AzureTableStorage]
+    QueueName:
+      settings-key: SlackQueueName
+MonitoringServiceClient:
+  MonitoringServiceUrl:
+    settings-key: MonitoringServiceUrl
+
