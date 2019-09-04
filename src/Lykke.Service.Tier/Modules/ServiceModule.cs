@@ -48,7 +48,7 @@ namespace Lykke.Service.Tier.Modules
                     {
                         ApiKey = _appSettings.CurrentValue.PersonalDataServiceClient.ApiKey,
                         ServiceUri = _appSettings.CurrentValue.PersonalDataServiceClient.ServiceUri
-                    }, ctx.Resolve<ILogFactory>()))
+                    }, ctx.Resolve<ILogFactory>().CreateLog(nameof(PersonalDataService))))
                 .SingleInstance();
 
             builder.RegisterEmailSenderViaAzureQueueMessageProducer(_appSettings.ConnectionString(x => x.TierService.Db.ClientPersonalInfoConnString));

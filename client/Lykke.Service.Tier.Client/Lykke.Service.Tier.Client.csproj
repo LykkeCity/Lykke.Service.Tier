@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Lykke.HttpClientGenerator" Version="2.5.0" />
     <PackageReference Include="Lykke.Service.ClientAccount.Client" Version="4.3.1" />
-    <PackageReference Include="Lykke.Service.Kyc.Client" Version="1.0.267" />
+    <PackageReference Include="Lykke.Service.Kyc.Client" Version="1.0.256" />
     <PackageReference Include="Lykke.SettingsReader" Version="5.2.0" />
     <PackageReference Include="Refit" Version="4.6.107" />
   </ItemGroup>
