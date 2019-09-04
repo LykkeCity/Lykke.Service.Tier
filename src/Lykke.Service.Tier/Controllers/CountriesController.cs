@@ -3,7 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Lykke.Common.Api.Contract.Responses;
-using Lykke.Service.Tier.Client;
+using Lykke.Service.Tier.Client.Api;
 using Lykke.Service.Tier.Settings;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -25,7 +25,7 @@ namespace Lykke.Service.Tier.Controllers
         /// <inheritdoc cref="ICountriesApi"/>
         [HttpGet("ishighrisk/{countryCode}")]
         [SwaggerOperation("IsHighRiskCountry")]
-        [ProducesResponseType(typeof(void), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.NotFound)]
         public Task<bool> IsHighRiskCountryAsync(string countryCode)
         {

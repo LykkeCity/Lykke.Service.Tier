@@ -1,4 +1,5 @@
 ﻿using JetBrains.Annotations;
+using Lykke.Service.Tier.Client.Api;
 
 namespace Lykke.Service.Tier.Client
 {
@@ -10,5 +11,8 @@ namespace Lykke.Service.Tier.Client
     {
         /// <summary>Api for countries</summary>
         ICountriesApi Countries { get; }
+
+        /// <summary>Api for tier upgrade requests</summary>
+        ITierUpgradeRequestsApi UpgradeRequests { get; }
     }
 }

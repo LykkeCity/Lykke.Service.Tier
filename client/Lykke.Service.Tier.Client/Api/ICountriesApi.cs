@@ -2,7 +2,7 @@
 using JetBrains.Annotations;
 using Refit;
 
-namespace Lykke.Service.Tier.Client
+namespace Lykke.Service.Tier.Client.Api
 {
     /// <summary>
     /// Countries API interface.
