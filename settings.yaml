@@ -21,11 +21,11 @@ TierService:
       types: [JsonArray]
   Cqrs:
     RabbitConnectionString:
-      settings-key: TierService-Cqrs-RabbitConnectionString
+      settings-key: RabbitSagas
       types: [RabbitMq]
   Redis:
     Configuration:
-      settings-key: TierService-Redis-Configuration
+      settings-key: RedisConfiguration
       types: [Redis]
     InstanceName:
       settings-key: TierService-Redis-InstanceName
