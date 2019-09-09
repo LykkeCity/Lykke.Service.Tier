@@ -49,7 +49,6 @@ namespace Lykke.Service.Tier.Modules
                 }),
                 new RabbitMqTransportFactory(ctx.Resolve<ILogFactory>()))).As<IMessagingEngine>().SingleInstance();
 
-            builder.RegisterType<ClientDepositsProjection>();
             builder.RegisterType<TierUpgradeRequestProjection>().PropertiesAutowired(PropertyWiringOptions.AllowCircularDependencies);
 
             const string environment = "lykke";
@@ -71,10 +70,6 @@ namespace Lykke.Service.Tier.Modules
                     Register.EventInterceptors(new DefaultEventLoggingInterceptor(ctx.Resolve<ILogFactory>())),
 
                     Register.BoundedContext(TierBoundedContext.Name)
-                        .ListeningEvents(typeof(ClientDepositEvent))
-                            .From(LimitationsBoundedContext.Name).On("events")
-                            .WithProjection(typeof(ClientDepositsProjection), LimitationsBoundedContext.Name)
-
                         .PublishingEvents(typeof (TierUpgradeRequestChangedEvent))
                             .With("self")
                             .WithLoopback()
