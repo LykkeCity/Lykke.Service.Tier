@@ -1,10 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using Lykke.Common.Api.Contract.Responses;
 using Lykke.Service.Tier.Client.Api;
-using Lykke.Service.Tier.Settings;
+using Lykke.Service.Tier.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -13,10 +13,10 @@ namespace Lykke.Service.Tier.Controllers
     [Route("api/countries")]
     public class CountriesController : Controller, ICountriesApi
     {
-        private readonly CountriesSettings _countriesSettings;
+        private readonly Dictionary<CountryRisk, string[]> _countriesSettings;
 
         public CountriesController(
-            CountriesSettings countriesSettings
+            Dictionary<CountryRisk, string[]> countriesSettings
             )
         {
             _countriesSettings = countriesSettings;
@@ -26,10 +26,9 @@ namespace Lykke.Service.Tier.Controllers
         [HttpGet("ishighrisk/{countryCode}")]
         [SwaggerOperation("IsHighRiskCountry")]
         [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
-        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.NotFound)]
         public Task<bool> IsHighRiskCountryAsync(string countryCode)
         {
-            return Task.FromResult(_countriesSettings.HighRisk.Contains(countryCode, StringComparer.InvariantCultureIgnoreCase));
+            return Task.FromResult(_countriesSettings.ContainsKey(CountryRisk.High) && _countriesSettings[CountryRisk.High].Contains(countryCode, StringComparer.InvariantCultureIgnoreCase));
         }
     }
 }

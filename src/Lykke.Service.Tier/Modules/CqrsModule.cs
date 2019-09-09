@@ -9,6 +9,8 @@ using Lykke.Messaging;
 using Lykke.Messaging.Contract;
 using Lykke.Messaging.RabbitMq;
 using Lykke.Messaging.Serialization;
+using Lykke.Service.Kyc.Contract;
+using Lykke.Service.Kyc.Contract.Events;
 using Lykke.Service.Limitations.Client;
 using Lykke.Service.Limitations.Client.Events;
 using Lykke.Service.PushNotifications.Contract;
@@ -17,6 +19,7 @@ using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Events;
 using Lykke.Service.Tier.Settings;
 using Lykke.Service.Tier.Workflow.Projections;
+using Lykke.Service.Tier.Workflow.Sagas;
 using Lykke.SettingsReader;
 
 namespace Lykke.Service.Tier.Modules
@@ -49,11 +52,16 @@ namespace Lykke.Service.Tier.Modules
                 }),
                 new RabbitMqTransportFactory(ctx.Resolve<ILogFactory>()))).As<IMessagingEngine>().SingleInstance();
 
-            builder.RegisterType<ClientDepositsProjection>();
-            builder.RegisterType<TierUpgradeRequestProjection>().PropertiesAutowired(PropertyWiringOptions.AllowCircularDependencies);
+            builder.RegisterType<ClientDepositsSaga>();
+            builder.RegisterType<TierUpgradeRequestSaga>();
+            builder.RegisterType<KycStatusChangedProjection>();
+            builder.RegisterType<DepositOperationRemovedProjection>();
 
             const string environment = "lykke";
             const string queuePostfix = "k8s";
+            const string commandsRoute = "commands";
+            const string eventsRoute = "events";
+            const string selfRoute = "self";
 
             builder.Register(ctx =>
             {
@@ -71,21 +79,30 @@ namespace Lykke.Service.Tier.Modules
                     Register.EventInterceptors(new DefaultEventLoggingInterceptor(ctx.Resolve<ILogFactory>())),
 
                     Register.BoundedContext(TierBoundedContext.Name)
-                        .ListeningEvents(typeof(ClientDepositEvent))
-                            .From(LimitationsBoundedContext.Name).On("events")
-                            .WithProjection(typeof(ClientDepositsProjection), LimitationsBoundedContext.Name)
-
                         .PublishingEvents(typeof (TierUpgradeRequestChangedEvent))
-                            .With("self")
-                            .WithLoopback()
+                        .With(selfRoute)
 
+                        .ListeningEvents(typeof(KycStatusChangedEvent))
+                        .From(KycBoundedContext.Name).On(eventsRoute)
+                        .WithProjection(typeof(KycStatusChangedProjection), KycBoundedContext.Name)
+
+                        .ListeningEvents(typeof(ClientOperationRemovedEvent))
+                        .From(LimitationsBoundedContext.Name).On(eventsRoute)
+                        .WithProjection(typeof(DepositOperationRemovedProjection), LimitationsBoundedContext.Name),
+
+                    Register.Saga<TierUpgradeRequestSaga>("upgrade-request-saga")
                         .ListeningEvents(typeof(TierUpgradeRequestChangedEvent))
-                            .From(TierBoundedContext.Name).On("self")
-                            .WithProjection(typeof(TierUpgradeRequestProjection), TierBoundedContext.Name)
+                        .From(TierBoundedContext.Name).On(selfRoute)
+                        .PublishingCommands(typeof(TextNotificationCommand)).To(PushNotificationsBoundedContext.Name)
+                        .With(commandsRoute)
+                        .ProcessingOptions(commandsRoute).MultiThreaded(2).QueueCapacity(256),
 
-                        .PublishingCommands(typeof(TextNotificationCommand))
-                            .To(PushNotificationsBoundedContext.Name)
-                            .With("commands")
+                    Register.Saga<ClientDepositsSaga>("client-deposits-saga")
+                        .ListeningEvents(typeof(ClientDepositEvent))
+                        .From(LimitationsBoundedContext.Name).On(eventsRoute)
+                        .PublishingCommands(typeof(TextNotificationCommand)).To(PushNotificationsBoundedContext.Name)
+                        .With(commandsRoute)
+                        .ProcessingOptions(commandsRoute).MultiThreaded(2).QueueCapacity(256)
                 );
 
                 engine.StartPublishers();

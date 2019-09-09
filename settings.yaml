@@ -10,15 +10,29 @@ TierService:
       settings-key: TierService-ClientPersonalInfoConnString
       types: [AzureTableStorage]
   Countries:
-    LowRisk:
+    Low:
       settings-key: TierService-Countries-LowRisk
       types: [JsonArray]
-    MidRisk:
+    Mid:
       settings-key: TierService-Countries-MidRisk
       types: [JsonArray]
-    HighRisk:
+    High:
       settings-key: TierService-Countries-HighRisk
       types: [JsonArray]
+  Limits:
+    Low:
+      settings-key: TierService-Limits-LowRisk
+      types: [JsonArray]
+    Mid:
+      settings-key: TierService-Limits-MidRisk
+      types: [JsonArray]
+    High:
+      settings-key: TierService-Limits-HighRisk
+      types: [JsonArray]
+  PushLimitsReachedAt:
+      settings-key: TierService-PushLimitsReachedAt
+      types: [JsonArray]
+
   Cqrs:
     RabbitConnectionString:
       settings-key: RabbitSagas
