@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -66,7 +67,9 @@ namespace Lykke.Service.Tier.Controllers
         [ProducesResponseType(typeof(void), (int)HttpStatusCode.OK)]
         public Task AddAsync([FromBody]TierUpgradeRequest request)
         {
-            return _tierUpgradeService.AddAsync(request.ClientId, request.Tier.ToAccountTier(), request.KycStatus,
+            Enum.TryParse(request.KycStatus, out KycStatus status);
+
+            return _tierUpgradeService.AddAsync(request.ClientId, request.Tier.ToAccountTier(), status,
                 request.Changer, request.Comment);
         }
     }

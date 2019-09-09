@@ -70,7 +70,6 @@ namespace Lykke.Service.Tier.Workflow.Projections
             var pushSettings = pushSettingsTask.Result;
             bool pushEnabled = pushSettings.Enabled && !string.IsNullOrEmpty(clientAcc.NotificationsId);
 
-            Task emailTask = null;
             Task<EmailMessage> emailTemplateTask = Task.FromResult<EmailMessage>(null);
             Task<EmailMessage> pushTemplateTask = Task.FromResult<EmailMessage>(null);
             string type = string.Empty;
