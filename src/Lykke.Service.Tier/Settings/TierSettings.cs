@@ -1,4 +1,7 @@
-﻿using JetBrains.Annotations;
+﻿using System.Collections.Generic;
+using JetBrains.Annotations;
+using Lykke.Service.Tier.Domain;
+using Lykke.Service.Tier.Domain.Settings;
 
 namespace Lykke.Service.Tier.Settings
 {
@@ -6,7 +9,9 @@ namespace Lykke.Service.Tier.Settings
     public class TierSettings
     {
         public DbSettings Db { get; set; }
-        public CountriesSettings Countries { get; set; }
+        public Dictionary<CountryRisk, string[]> Countries { get; set; }
+        public Dictionary<CountryRisk, LimitSettings[]> Limits { get; set; }
+        public int[] PushLimitsReachedAt { get; set; }
         public CqrsSettings Cqrs { get; set; }
         public RedisSettings Redis { get; set; }
     }
