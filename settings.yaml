@@ -3,6 +3,12 @@ TierService:
     LogsConnString:
       settings-key: TierService-LogsConnString
       types: [AzureTableStorage]
+    DataConnString:
+      settings-key: TierService-DataConnString
+      types: [AzureTableStorage]
+    ClientPersonalInfoConnString:
+      settings-key: TierService-ClientPersonalInfoConnString
+      types: [AzureTableStorage]
   Countries:
     LowRisk:
       settings-key: TierService-Countries-LowRisk
@@ -13,6 +19,16 @@ TierService:
     HighRisk:
       settings-key: TierService-Countries-HighRisk
       types: [JsonArray]
+  Cqrs:
+    RabbitConnectionString:
+      settings-key: RabbitSagas
+      types: [RabbitMq]
+  Redis:
+    Configuration:
+      settings-key: RedisConfiguration
+      types: [Redis]
+    InstanceName:
+      settings-key: TierService-Redis-InstanceName
 SlackNotifications:
   AzureQueue:
     ConnectionString:
@@ -23,4 +39,20 @@ SlackNotifications:
 MonitoringServiceClient:
   MonitoringServiceUrl:
     settings-key: MonitoringServiceUrl
+ClientAccountServiceClient:
+  ServiceUrl:
+    settings-key: ClientAccountServiceUrl
+PersonalDataServiceClient:
+  ApiKey:
+    settings-key: PersonalDataApiKey
+  ServiceUri:
+    settings-key: PersonalDataServiceUrl
+TemplateFormatterServiceClient:
+  ServiceUrl:
+    settings-key: TemplateFormatterServiceUrl
+KycServiceClient:
+  ApiKey:
+    settings-key: KycService-ApiKey
+  ServiceUri:
+    settings-key: KycServiceUrl
 

@@ -18,12 +18,25 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="8.0.0" />
+    <PackageReference Include="Lykke.Cqrs" Version="9.0.0" />
+    <PackageReference Include="Lykke.Messages" Version="1.9.0" />
+    <PackageReference Include="Lykke.Messaging" Version="6.3.0" />
+    <PackageReference Include="Lykke.Messaging.RabbitMq" Version="2.2.0" />
     <PackageReference Include="Lykke.Sdk" Version="5.14.0" />
+    <PackageReference Include="Lykke.Service.ClientAccount.Client" Version="4.3.1" />
+    <PackageReference Include="Lykke.Service.Kyc.Client" Version="1.0.256" />
+    <PackageReference Include="Lykke.Service.Limitations.Client" Version="1.3.0" />
+    <PackageReference Include="Lykke.Service.PersonalData" Version="1.0.77" />
+    <PackageReference Include="Lykke.Service.PushNotifications.Contract" Version="1.5.0" />
+    <PackageReference Include="Lykke.Service.TemplateFormatter.Client" Version="1.1.0" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.0.601" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\client\Lykke.Service.Tier.Client\Lykke.Service.Tier.Client.csproj" />
+    <ProjectReference Include="..\..\contract\Lykke.Service.Tier.Contract\Lykke.Service.Tier.Contract.csproj" />
     <ProjectReference Include="..\Lykke.Service.Tier.AzureRepositories\Lykke.Service.Tier.AzureRepositories.csproj" />
     <ProjectReference Include="..\Lykke.Service.Tier.Domain\Lykke.Service.Tier.Domain.csproj" />
     <ProjectReference Include="..\Lykke.Service.Tier.DomainServices\Lykke.Service.Tier.DomainServices.csproj" />
