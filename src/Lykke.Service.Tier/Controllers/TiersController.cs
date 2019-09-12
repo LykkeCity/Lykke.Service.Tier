@@ -57,12 +57,12 @@ namespace Lykke.Service.Tier.Controllers
             {
                 var nextTierLimits = await _limitsService.GetClientLimitSettingsAsync(clientId, nextTier.Value, pd.CountryFromPOA);
 
-                if (nextTierLimits?.MaxLimit != null)
+                if (nextTierLimits != null)
                 {
                     tierInfo = new TierInfo
                     {
                         Tier = nextTier.Value,
-                        MaxLimit = nextTierLimits.MaxLimit.Value,
+                        MaxLimit = nextTierLimits.MaxLimit,
                         Documents = nextTierLimits.Documents.Select(x => x.ToString()).ToArray()
                     };
                 }
@@ -75,7 +75,7 @@ namespace Lykke.Service.Tier.Controllers
                 Tier = client.Tier,
                 Asset = "EUR",
                 Current = currentDepositAmount,
-                MaxLimit = maxLimit?.MaxLimit ?? 0,
+                MaxLimit = maxLimit?.MaxLimit,
                 NextTier = tierInfo
             };
         }
