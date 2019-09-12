@@ -7,6 +7,7 @@ using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
+using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
@@ -61,6 +62,12 @@ namespace Lykke.Service.Tier.DomainServices
             if (status == KycStatus.Ok)
             {
                 await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
+                await _clientAccountClient.ClientSettings.SetCashOutBlockAsync(new CashOutBlockRequest
+                {
+                    ClientId = clientId,
+                    CashOutBlocked = false,
+                    TradesBlocked = false
+                });
             }
 
             if (currentTierRequest?.KycStatus != status)

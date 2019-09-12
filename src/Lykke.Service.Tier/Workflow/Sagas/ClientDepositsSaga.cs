@@ -83,10 +83,10 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                         new
                         {
                             CurrentAmount = checkAmount,
-                            Limit = currentLimitSettings,
+                            Limit = currentLimitSettings.MaxLimit.Value,
                             Percent = Math.Round(checkAmount / currentLimitSettings.MaxLimit.Value * 100),
                             FullName = pd.FullName,
-                            Asset = evt.Asset
+                            Asset = evt.BaseAsset
                         });
 
                     commandSender.SendCommand(new TextNotificationCommand
