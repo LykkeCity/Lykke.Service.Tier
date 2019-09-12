@@ -16,7 +16,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Lykke.Service.Tier.Controllers
 {
-    [Route("api/countries")]
+    [Route("api/tiers")]
     public class TiersController : Controller, ITiersApi
     {
         private readonly IClientAccountClient _clientAccountClient;
@@ -37,7 +37,7 @@ namespace Lykke.Service.Tier.Controllers
         /// <inheritdoc cref="ITiersApi"/>
         [HttpGet("client/{clientId}")]
         [SwaggerOperation("GetClientTierInfo")]
-        [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(TierInfoResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.NotFound)]
         public async Task<TierInfoResponse> GetClientTierInfoAsync(string clientId)
         {
