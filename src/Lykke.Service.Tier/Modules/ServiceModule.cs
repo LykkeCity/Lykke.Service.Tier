@@ -42,6 +42,11 @@ namespace Lykke.Service.Tier.Modules
                 .SingleInstance();
 
             builder.RegisterClientAccountClient(_appSettings.CurrentValue.ClientAccountServiceClient);
+            builder.Register(ctx =>
+                new LimitsRepository(AzureTableStorage<LimitEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "IndividualLimits", ctx.Resolve<ILogFactory>()))
+            ).As<ILimitsRepository>().SingleInstance();
 
             builder.Register<IPersonalDataService>(ctx =>
                     new PersonalDataService(new PersonalDataServiceClientSettings
@@ -54,7 +59,7 @@ namespace Lykke.Service.Tier.Modules
             builder.RegisterEmailSenderViaAzureQueueMessageProducer(_appSettings.ConnectionString(x => x.TierService.Db.ClientPersonalInfoConnString));
             builder.RegisterTemplateFormatter(_appSettings.CurrentValue.TemplateFormatterServiceClient.ServiceUrl);
 
-            builder.Register(ctx => new KycDocumentsServiceV2Client(_appSettings.CurrentValue.KycServiceClient, ctx.Resolve<ILogFactory>()))
+            builder.Register(ctx => new KycDocumentsServiceV2Client(_appSettings.CurrentValue.KycServiceClient, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycDocumentsServiceV2Client))))
                 .As<IKycDocumentsServiceV2>()
                 .SingleInstance();
 
@@ -63,7 +68,6 @@ namespace Lykke.Service.Tier.Modules
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Redis.InstanceName))
                 .PropertiesAutowired(PropertyWiringOptions.AllowCircularDependencies)
                 .SingleInstance();
-
 
             builder.Register(c =>
             {
@@ -88,6 +92,32 @@ namespace Lykke.Service.Tier.Modules
                     _appSettings.ConnectionString(x => x.TierService.Db.ClientPersonalInfoConnString),
                     "AuditLogs", ctx.Resolve<ILogFactory>()))
             ).As<IAuditLogRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new LimitsRepository(AzureTableStorage<LimitEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "IndividualLimits", ctx.Resolve<ILogFactory>()))
+            ).As<ILimitsRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new ClientDepositsRepository(AzureTableStorage<DepositOperationEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "ClientDeposits", ctx.Resolve<ILogFactory>()))
+            ).As<IClientDepositsRepository>().SingleInstance();
+
+            builder.RegisterType<LimitsService>()
+                .As<ILimitsService>()
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Countries))
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Limits))
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.PushLimitsReachedAt))
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Redis.InstanceName))
+                .SingleInstance();
+
+            builder.Register(ctx =>
+                new LimitsRepository(AzureTableStorage<LimitEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "IndividualLimits", ctx.Resolve<ILogFactory>()))
+            ).As<ILimitsRepository>().SingleInstance();
         }
     }
 }

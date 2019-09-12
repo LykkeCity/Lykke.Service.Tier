@@ -14,17 +14,14 @@ using Lykke.Service.PushNotifications.Contract;
 using Lykke.Service.PushNotifications.Contract.Commands;
 using Lykke.Service.PushNotifications.Contract.Enums;
 using Lykke.Service.TemplateFormatter.Client;
-using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Events;
 using Lykke.Service.Tier.Domain.Services;
 using IEmailSender = Lykke.Messages.Email.IEmailSender;
 
-namespace Lykke.Service.Tier.Workflow.Projections
+namespace Lykke.Service.Tier.Workflow.Sagas
 {
-    public class TierUpgradeRequestProjection
+    public class TierUpgradeRequestSaga
     {
-        public ICqrsEngine CqrsEngine { get; set; }
-
         private readonly ITierUpgradeService _tierUpgradeService;
         private readonly IClientAccountClient _clientAccountClient;
         private readonly IPersonalDataService _personalDataService;
@@ -32,7 +29,7 @@ namespace Lykke.Service.Tier.Workflow.Projections
         private readonly IEmailSender _emailSender;
         private readonly ITemplateFormatter _templateFormatter;
 
-        public TierUpgradeRequestProjection(
+        public TierUpgradeRequestSaga(
             ITierUpgradeService tierUpgradeService,
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
@@ -49,15 +46,15 @@ namespace Lykke.Service.Tier.Workflow.Projections
             _templateFormatter = templateFormatter;
         }
 
-        public Task Handle(TierUpgradeRequestChangedEvent evt)
+        public Task Handle(TierUpgradeRequestChangedEvent evt, ICommandSender commandSender)
         {
             return Task.WhenAll(
                 _tierUpgradeService.UpdateCountsAsync(evt.ClientId, evt.Tier, evt.OldStatus, evt.NewStatus),
-                SendNotificationAsync(evt)
+                SendNotificationAsync(evt, commandSender)
             );
         }
 
-        private async Task SendNotificationAsync(TierUpgradeRequestChangedEvent evt)
+        private async Task SendNotificationAsync(TierUpgradeRequestChangedEvent evt, ICommandSender commandSender)
         {
             var clientAccTask = _clientAccountClient.ClientAccountInformation.GetByIdAsync(evt.ClientId);
             var personalDataTask = _personalDataService.GetAsync(evt.ClientId);
@@ -106,8 +103,8 @@ namespace Lykke.Service.Tier.Workflow.Projections
                         type = NotificationType.KycNeedToFillDocuments.ToString();
                         break;
                     case KycStatus.Rejected:
-//                        emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradedTemplate", clientAcc.PartnerId,
-//                            "EN", new { FullName = personalData.FullName, Tier = notification.Tier.ToString(), Year = DateTime.UtcNow.Year });
+                        emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradeRejectedTemplate", clientAcc.PartnerId,
+                            "EN", new { FullName = personalData.FullName, Tier = evt.Tier.ToString(), Year = DateTime.UtcNow.Year });
                         break;
 
                     case KycStatus.RestrictedArea:
@@ -141,12 +138,12 @@ namespace Lykke.Service.Tier.Workflow.Projections
 
                 if (pushEnabled && pushTemplateTask.Result != null)
                 {
-                    CqrsEngine.SendCommand(new TextNotificationCommand
+                    commandSender.SendCommand(new TextNotificationCommand
                     {
                         NotificationIds = new[]{clientAcc.NotificationsId},
                         Type = type,
                         Message = pushTemplateTask.Result.Subject
-                    }, TierBoundedContext.Name, PushNotificationsBoundedContext.Name);
+                    }, PushNotificationsBoundedContext.Name);
                 }
 
                 await sendEmailTask;
