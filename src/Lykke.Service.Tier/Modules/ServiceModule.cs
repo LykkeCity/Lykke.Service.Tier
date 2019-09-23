@@ -107,7 +107,6 @@ namespace Lykke.Service.Tier.Modules
 
             builder.RegisterType<LimitsService>()
                 .As<ILimitsService>()
-                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Countries))
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Limits))
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.PushLimitsReachedAt))
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Redis.InstanceName))
@@ -118,6 +117,11 @@ namespace Lykke.Service.Tier.Modules
                     _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
                     "IndividualLimits", ctx.Resolve<ILogFactory>()))
             ).As<ILimitsRepository>().SingleInstance();
+
+            builder.RegisterType<CountriesService>()
+                .As<ICountriesService>()
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Countries))
+                .SingleInstance();
         }
     }
 }

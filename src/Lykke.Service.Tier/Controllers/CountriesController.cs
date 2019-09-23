@@ -1,10 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using AutoMapper;
 using Lykke.Service.Tier.Client.Api;
-using Lykke.Service.Tier.Domain;
+using Lykke.Service.Tier.Client.Models;
+using Lykke.Service.Tier.Client.Models.Responses;
+using Lykke.Service.Tier.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -13,13 +13,16 @@ namespace Lykke.Service.Tier.Controllers
     [Route("api/countries")]
     public class CountriesController : Controller, ICountriesApi
     {
-        private readonly Dictionary<CountryRisk, string[]> _countriesSettings;
+        private readonly ICountriesService _countriesService;
+        private readonly IMapper _mapper;
 
         public CountriesController(
-            Dictionary<CountryRisk, string[]> countriesSettings
+            ICountriesService countriesService,
+            IMapper mapper
             )
         {
-            _countriesSettings = countriesSettings;
+            _countriesService = countriesService;
+            _mapper = mapper;
         }
 
         /// <inheritdoc cref="ICountriesApi"/>
@@ -28,7 +31,21 @@ namespace Lykke.Service.Tier.Controllers
         [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
         public Task<bool> IsHighRiskCountryAsync(string countryCode)
         {
-            return Task.FromResult(_countriesSettings.ContainsKey(CountryRisk.High) && _countriesSettings[CountryRisk.High].Contains(countryCode, StringComparer.InvariantCultureIgnoreCase));
+            return Task.FromResult(_countriesService.IsHighRiskCountry(countryCode));
+        }
+
+        /// <inheritdoc cref="ICountriesApi"/>
+        [HttpGet("risk/{countryCode}")]
+        [SwaggerOperation("GetCountryRisk")]
+        [ProducesResponseType(typeof(CountryRiskResponse), (int)HttpStatusCode.OK)]
+        public Task<CountryRiskResponse> GetCountryRiskAsync(string countryCode)
+        {
+            var result = new CountryRiskResponse
+            {
+                Risk = _mapper.Map<RiskModel?>(_countriesService.GetCountryRisk(countryCode))
+            };
+
+            return Task.FromResult(result);
         }
     }
 }

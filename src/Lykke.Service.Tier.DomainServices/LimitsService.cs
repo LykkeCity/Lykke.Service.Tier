@@ -20,34 +20,34 @@ namespace Lykke.Service.Tier.DomainServices
     {
         private readonly string _instanceName;
         private readonly IDatabase _database;
-        private readonly Dictionary<CountryRisk, string[]> _countriesSettings;
         private readonly Dictionary<CountryRisk, LimitSettings[]> _limitSettings;
         private readonly int[] _pushLimitsSettings;
         private readonly ILimitsRepository _limitsRepository;
         private readonly IClientDepositsRepository _clientDepositsRepository;
         private readonly IMapper _mapper;
+        private readonly ICountriesService _countriesService;
         private readonly ILog _log;
 
         public LimitsService(
             string instanceName,
             IDatabase database,
-            Dictionary<CountryRisk, string[]> countriesSettings,
             Dictionary<CountryRisk, LimitSettings[]> limitSettings,
             int[] pushLimitsSettings,
             ILimitsRepository limitsRepository,
             IClientDepositsRepository clientDepositsRepository,
             IMapper mapper,
+            ICountriesService countriesService,
             ILogFactory logFactory
             )
         {
             _instanceName = instanceName;
             _database = database;
-            _countriesSettings = countriesSettings;
             _limitSettings = limitSettings;
             _pushLimitsSettings = pushLimitsSettings;
             _limitsRepository = limitsRepository;
             _clientDepositsRepository = clientDepositsRepository;
             _mapper = mapper;
+            _countriesService = countriesService;
             _log = logFactory.CreateLog(this);
         }
 
@@ -56,7 +56,7 @@ namespace Lykke.Service.Tier.DomainServices
             if (tier == AccountTier.Beginner)
                 return null;
 
-            var countryRisk = GetCountryRisk(country);
+            var countryRisk = _countriesService.GetCountryRisk(country);
 
             if (countryRisk == null)
             {
@@ -87,17 +87,6 @@ namespace Lykke.Service.Tier.DomainServices
             limit.MaxLimit = individualLimit;
 
             return limit;
-        }
-
-        public CountryRisk? GetCountryRisk(string country)
-        {
-            foreach (var countryItem in _countriesSettings)
-            {
-                if (countryItem.Value.Contains(country))
-                    return countryItem.Key;
-            }
-
-            return null;
         }
 
         public bool IsLimitReachedForNotification(double current, double max)
