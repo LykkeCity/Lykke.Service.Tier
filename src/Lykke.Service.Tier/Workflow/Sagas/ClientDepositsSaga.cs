@@ -74,9 +74,13 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             if (checkAmount <= currentLimitSettings.MaxLimit.Value)
             {
                 bool needNotification = _limitsService.IsLimitReachedForNotification(checkAmount, currentLimitSettings.MaxLimit.Value);
+
+                if (!needNotification)
+                    return;
+
                 var pushSettings = await _clientAccountClient.ClientSettings.GetPushNotificationAsync(evt.ClientId);
 
-                if (needNotification && pushSettings.Enabled && !string.IsNullOrEmpty(clientAccount.NotificationsId))
+                if (pushSettings.Enabled && !string.IsNullOrEmpty(clientAccount.NotificationsId))
                 {
                     var template = await _templateFormatter.FormatAsync("PushLimitPercentReachedTemplate",
                         clientAccount.PartnerId, "EN",
