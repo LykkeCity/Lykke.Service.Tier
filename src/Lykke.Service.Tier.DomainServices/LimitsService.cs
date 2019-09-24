@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -20,34 +19,28 @@ namespace Lykke.Service.Tier.DomainServices
     {
         private readonly string _instanceName;
         private readonly IDatabase _database;
-        private readonly Dictionary<CountryRisk, LimitSettings[]> _limitSettings;
-        private readonly int[] _pushLimitsSettings;
         private readonly ILimitsRepository _limitsRepository;
         private readonly IClientDepositsRepository _clientDepositsRepository;
         private readonly IMapper _mapper;
-        private readonly ICountriesService _countriesService;
+        private readonly ISettingsService _settingsService;
         private readonly ILog _log;
 
         public LimitsService(
             string instanceName,
             IDatabase database,
-            Dictionary<CountryRisk, LimitSettings[]> limitSettings,
-            int[] pushLimitsSettings,
             ILimitsRepository limitsRepository,
             IClientDepositsRepository clientDepositsRepository,
             IMapper mapper,
-            ICountriesService countriesService,
+            ISettingsService settingsService,
             ILogFactory logFactory
             )
         {
             _instanceName = instanceName;
             _database = database;
-            _limitSettings = limitSettings;
-            _pushLimitsSettings = pushLimitsSettings;
             _limitsRepository = limitsRepository;
             _clientDepositsRepository = clientDepositsRepository;
             _mapper = mapper;
-            _countriesService = countriesService;
+            _settingsService = settingsService;
             _log = logFactory.CreateLog(this);
         }
 
@@ -56,7 +49,7 @@ namespace Lykke.Service.Tier.DomainServices
             if (tier == AccountTier.Beginner)
                 return null;
 
-            var countryRisk = _countriesService.GetCountryRisk(country);
+            var countryRisk = _settingsService.GetCountryRisk(country);
 
             if (countryRisk == null)
             {
@@ -64,9 +57,7 @@ namespace Lykke.Service.Tier.DomainServices
                 return null;
             }
 
-            LimitSettings limit = _limitSettings.ContainsKey(countryRisk.Value)
-                ? _limitSettings[countryRisk.Value].FirstOrDefault(x => x.Tier == tier)
-                : null;
+            LimitSettings limit = _settingsService.GetLimit(countryRisk.Value, tier);
 
             if (limit == null)
             {
@@ -74,37 +65,11 @@ namespace Lykke.Service.Tier.DomainServices
                 return null;
             }
 
-            if (limit.MaxLimit != null)
-                return limit;
-
             var individualLimit = await _limitsRepository.GetAsync(clientId);
 
-            if (individualLimit == 0)
-            {
-                _log.Error(message: "No individual limit", context: new {clientId});
-            }
-
-            limit.MaxLimit = individualLimit;
+            limit.MaxLimit = individualLimit?.Limit ?? limit.MaxLimit;
 
             return limit;
-        }
-
-        public bool IsLimitReachedForNotification(double current, double max)
-        {
-            var currentPercent = current / max * 100;
-
-            bool result = false;
-
-            foreach (var percent in _pushLimitsSettings.OrderBy(x => x))
-            {
-                if (currentPercent >= percent)
-                {
-                    result = true;
-                    break;
-                }
-            }
-
-            return result;
         }
 
         public async Task SaveDepositOperationAsync(ClientDepositEvent evt)
@@ -130,6 +95,16 @@ namespace Lykke.Service.Tier.DomainServices
             return tier == AccountTier.Apprentice
                 ? deposits.Sum(x => x.BaseVolume)
                 : deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
+        }
+
+        public Task AddLimitAsync(string clientId, double limit, string asset)
+        {
+            return _limitsRepository.AddAsync(clientId, limit, asset);
+        }
+
+        public Task<ILimit> GetLimitAsync(string clientId)
+        {
+            return _limitsRepository.GetAsync(clientId);
         }
     }
 }

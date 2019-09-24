@@ -23,18 +23,21 @@ namespace Lykke.Service.Tier.Controllers
         private readonly IPersonalDataService _personalDataService;
         private readonly ILimitsService _limitsService;
         private readonly ITierUpgradeService _tierUpgradeService;
+        private readonly ISettingsService _settingsService;
 
         public TiersController(
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
             ILimitsService limitsService,
-            ITierUpgradeService tierUpgradeService
+            ITierUpgradeService tierUpgradeService,
+            ISettingsService settingsService
             )
         {
             _clientAccountClient = clientAccountClient;
             _personalDataService = personalDataService;
             _limitsService = limitsService;
             _tierUpgradeService = tierUpgradeService;
+            _settingsService = settingsService;
         }
 
         /// <inheritdoc cref="ITiersApi"/>
@@ -85,7 +88,7 @@ namespace Lykke.Service.Tier.Controllers
             return new TierInfoResponse
             {
                 Tier = client.Tier,
-                Asset = "EUR",
+                Asset =  _settingsService.GetDefaultAsset(),
                 Current = currentDepositAmount,
                 MaxLimit = maxLimit?.MaxLimit,
                 NextTier = tierInfo

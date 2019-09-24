@@ -14,5 +14,6 @@ namespace Lykke.Service.Tier.Settings
         public int[] PushLimitsReachedAt { get; set; }
         public CqrsSettings Cqrs { get; set; }
         public RedisSettings Redis { get; set; }
+        public string DefaultAsset { get; set; }
     }
 }
