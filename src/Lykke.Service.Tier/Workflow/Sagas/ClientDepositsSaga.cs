@@ -21,18 +21,21 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly IClientAccountClient _clientAccountClient;
         private readonly IPersonalDataService _personalDataService;
         private readonly ILimitsService _limitsService;
+        private readonly ISettingsService _settingsService;
         private readonly ITemplateFormatter _templateFormatter;
 
         public ClientDepositsSaga(
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
             ILimitsService limitsService,
+            ISettingsService settingsService,
             ITemplateFormatter templateFormatter
             )
         {
             _clientAccountClient = clientAccountClient;
             _personalDataService = personalDataService;
             _limitsService = limitsService;
+            _settingsService = settingsService;
             _templateFormatter = templateFormatter;
         }
 
@@ -73,7 +76,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
             if (checkAmount <= currentLimitSettings.MaxLimit.Value)
             {
-                bool needNotification = _limitsService.IsLimitReachedForNotification(checkAmount, currentLimitSettings.MaxLimit.Value);
+                bool needNotification = _settingsService.IsLimitReachedForNotification(checkAmount, currentLimitSettings.MaxLimit.Value);
 
                 if (!needNotification)
                     return;

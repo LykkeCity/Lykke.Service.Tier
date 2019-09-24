@@ -6,6 +6,7 @@ namespace Lykke.Service.Tier.Domain
     {
         string ClientId { get; }
         double Limit { get; }
+        string Asset { get; }
         DateTime Date { get; }
     }
 }

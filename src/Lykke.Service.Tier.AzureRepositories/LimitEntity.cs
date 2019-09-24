@@ -8,12 +8,13 @@ namespace Lykke.Service.Tier.AzureRepositories
     {
         public string ClientId { get; set; }
         public double Limit { get; set; }
+        public string Asset { get; set; }
         public DateTime Date { get; set; }
 
         public static string GeneratePk(string clientId) => $"limit_{clientId}";
         public static string GenerateRk(string clientId) => clientId;
 
-        public static LimitEntity Create(string clientId, double limit)
+        public static LimitEntity Create(string clientId, double limit, string asset)
         {
             return new LimitEntity
             {
@@ -21,6 +22,7 @@ namespace Lykke.Service.Tier.AzureRepositories
                 RowKey = GenerateRk(clientId),
                 ClientId = clientId,
                 Limit = limit,
+                Asset = asset,
                 Date = DateTime.UtcNow
             };
         }
