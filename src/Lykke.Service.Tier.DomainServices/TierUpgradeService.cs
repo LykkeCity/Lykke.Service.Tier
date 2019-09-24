@@ -4,7 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common;
 using Lykke.Cqrs;
+using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models;
+using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
+using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
@@ -24,18 +27,21 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly IDatabase _cache;
         private readonly ITierUpgradeRequestsRepository _repository;
         private readonly IAuditLogRepository _auditLogRepository;
+        private readonly IClientAccountClient _clientAccountClient;
 
         public TierUpgradeService(
             string instanceName,
             IDatabase database,
             ITierUpgradeRequestsRepository repository,
-            IAuditLogRepository auditLogRepository
+            IAuditLogRepository auditLogRepository,
+            IClientAccountClient clientAccountClient
         )
         {
             _instanceName = instanceName;
             _cache = database;
             _repository = repository;
             _auditLogRepository = auditLogRepository;
+            _clientAccountClient = clientAccountClient;
         }
 
         public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer, string comment = null)
@@ -52,6 +58,17 @@ namespace Lykke.Service.Tier.DomainServices
                 RecordType = AuditRecordType.TierUpgradeRequest,
                 Changer = changer
             });
+
+            if (status == KycStatus.Ok)
+            {
+                await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
+                await _clientAccountClient.ClientSettings.SetCashOutBlockAsync(new CashOutBlockRequest
+                {
+                    ClientId = clientId,
+                    CashOutBlocked = false,
+                    TradesBlocked = false
+                });
+            }
 
             if (currentTierRequest?.KycStatus != status)
             {
