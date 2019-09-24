@@ -19,6 +19,8 @@ TierService:
     High:
       settings-key: TierService-Countries-HighRisk
       types: [JsonArray]
+  DefaultAsset:
+    settings-key: TierService-DefaultAsset
   Limits:
     Low:
       settings-key: TierService-Limits-LowRisk

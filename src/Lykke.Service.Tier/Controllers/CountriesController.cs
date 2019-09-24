@@ -13,15 +13,15 @@ namespace Lykke.Service.Tier.Controllers
     [Route("api/countries")]
     public class CountriesController : Controller, ICountriesApi
     {
-        private readonly ICountriesService _countriesService;
+        private readonly ISettingsService _settingsService;
         private readonly IMapper _mapper;
 
         public CountriesController(
-            ICountriesService countriesService,
+            ISettingsService settingsService,
             IMapper mapper
             )
         {
-            _countriesService = countriesService;
+            _settingsService = settingsService;
             _mapper = mapper;
         }
 
@@ -31,7 +31,7 @@ namespace Lykke.Service.Tier.Controllers
         [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
         public Task<bool> IsHighRiskCountryAsync(string countryCode)
         {
-            return Task.FromResult(_countriesService.IsHighRiskCountry(countryCode));
+            return Task.FromResult(_settingsService.IsHighRiskCountry(countryCode));
         }
 
         /// <inheritdoc cref="ICountriesApi"/>
@@ -42,7 +42,7 @@ namespace Lykke.Service.Tier.Controllers
         {
             var result = new CountryRiskResponse
             {
-                Risk = _mapper.Map<RiskModel?>(_countriesService.GetCountryRisk(countryCode))
+                Risk = _mapper.Map<RiskModel?>(_settingsService.GetCountryRisk(countryCode))
             };
 
             return Task.FromResult(result);

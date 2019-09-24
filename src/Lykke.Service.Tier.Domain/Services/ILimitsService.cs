@@ -8,9 +8,10 @@ namespace Lykke.Service.Tier.Domain.Services
     public interface ILimitsService
     {
         Task<LimitSettings> GetClientLimitSettingsAsync(string clientId, AccountTier tier, string country);
-        bool IsLimitReachedForNotification(double current, double max);
         Task SaveDepositOperationAsync(ClientDepositEvent evt);
         Task DeleteDepositOperationAsync(string clientId, string operationId);
         Task<double> GetClientDepositAmountAsync(string clientId, AccountTier tier);
+        Task AddLimitAsync(string clientId, double limit, string asset);
+        Task<ILimit> GetLimitAsync(string clientId);
     }
 }

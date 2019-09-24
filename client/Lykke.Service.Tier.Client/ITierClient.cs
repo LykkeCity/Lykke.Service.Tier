@@ -17,5 +17,8 @@ namespace Lykke.Service.Tier.Client
 
         /// <summary>Api for tiers</summary>
         ITiersApi Tiers { get; }
+
+        /// <summary>Api for limits</summary>
+        ILimitsApi Limits { get; }
     }
 }
