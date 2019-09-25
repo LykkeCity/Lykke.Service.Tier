@@ -2,9 +2,9 @@ namespace Lykke.Service.Tier.Contract
 {
     public enum DocumentType
     {
-        Poi,
+        PoI,
         Selfie,
-        Poa,
-        Pof
+        PoA,
+        PoF
     }
 }
