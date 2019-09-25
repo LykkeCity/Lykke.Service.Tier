@@ -76,7 +76,7 @@ namespace Lykke.Service.Tier.Controllers
                     tierInfo = new TierInfo
                     {
                         Tier = nextTier.Value,
-                        MaxLimit = nextTierLimits.MaxLimit,
+                        MaxLimit = nextTierLimits.MaxLimit ?? 0,
                         Documents = nextTierLimits.Documents.Select(x => x.ToString()).ToArray(),
                         DocumentsSubmitDate = tierUpgradeRequest?.Date
                     };
@@ -90,7 +90,7 @@ namespace Lykke.Service.Tier.Controllers
                 Tier = client.Tier,
                 Asset =  _settingsService.GetDefaultAsset(),
                 Current = currentDepositAmount,
-                MaxLimit = maxLimit?.MaxLimit,
+                MaxLimit = maxLimit?.MaxLimit ?? 0,
                 NextTier = tierInfo
             };
         }

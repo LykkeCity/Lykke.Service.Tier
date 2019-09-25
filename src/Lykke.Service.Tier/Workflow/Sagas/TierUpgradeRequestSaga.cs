@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Lykke.Cqrs;
 using Lykke.Messages.Email.MessageData;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.EmailSender;
 using Lykke.Service.Kyc.Abstractions.Domain.Documents;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
@@ -115,6 +116,17 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                             pushTemplateTask = _templateFormatter.FormatAsync("PushKycRestrictedTemplate", clientAcc.PartnerId, "EN", new { });
 
                         type = NotificationType.KycRestrictedArea.ToString();
+                        break;
+
+                    case KycStatus.Pending:
+                        //first request to ProIndividual tier
+                        if (evt.OldStatus == null && evt.Tier == AccountTier.ProIndividual)
+                        {
+                            emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradePofInstructionTemplate",
+                                clientAcc.PartnerId,
+                                "EN", new {FullName = personalData.FullName, Year = DateTime.UtcNow.Year});
+                        }
+
                         break;
                 }
             }
