@@ -7,7 +7,7 @@ TierService:
       settings-key: TierService-DataConnString
       types: [AzureTableStorage]
     ClientPersonalInfoConnString:
-      settings-key: TierService-ClientPersonalInfoConnString
+      settings-key: PersonalInfoConnString
       types: [AzureTableStorage]
   Countries:
     Low:

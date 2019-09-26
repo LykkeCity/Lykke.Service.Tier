@@ -41,8 +41,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
         public async Task Handle(ClientDepositEvent evt, ICommandSender commandSender)
         {
-            await _limitsService.SaveDepositOperationAsync(evt);
-
             var clientAccountTask = _clientAccountClient.ClientAccountInformation.GetByIdAsync(evt.ClientId);
             var pdTask = _personalDataService.GetAsync(evt.ClientId);
 
@@ -50,6 +48,11 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
             ClientInfo clientAccount = clientAccountTask.Result;
             IPersonalData pd = pdTask.Result;
+
+            if (clientAccount == null)
+                return;
+
+            await _limitsService.SaveDepositOperationAsync(evt);
 
             LimitSettings currentLimitSettings = await _limitsService.GetClientLimitSettingsAsync(evt.ClientId, clientAccount.Tier, pd.CountryFromPOA);
 
