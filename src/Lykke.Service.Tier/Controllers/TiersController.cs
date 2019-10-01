@@ -53,7 +53,8 @@ namespace Lykke.Service.Tier.Controllers
                 throw new ValidationApiException(HttpStatusCode.NotFound, "Client not found");
 
             var pd = await _personalDataService.GetAsync(clientId);
-            AccountTier? nextTier = GetNextTier(client.Tier);
+
+            AccountTier? nextTier = GetNextTier(client.Tier, pd.CountryFromPOA);
 
             var maxLimitTask = _limitsService.GetClientLimitSettingsAsync(clientId, client.Tier, pd.CountryFromPOA);
             Task<ITierUpgradeRequest> tierUpgradeRequestTask = nextTier.HasValue
@@ -95,10 +96,15 @@ namespace Lykke.Service.Tier.Controllers
             };
         }
 
-        private static AccountTier? GetNextTier(AccountTier tier)
+        private AccountTier? GetNextTier(AccountTier tier, string country)
         {
             if (tier == AccountTier.ProIndividual)
                 return null;
+
+            bool isHighRiskCountry = _settingsService.IsHighRiskCountry(country);
+
+            if (isHighRiskCountry)
+                return AccountTier.ProIndividual;
 
             var values = (AccountTier[]) Enum.GetValues(typeof(AccountTier));
 
