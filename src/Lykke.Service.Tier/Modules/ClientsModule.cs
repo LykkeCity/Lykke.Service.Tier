@@ -33,7 +33,7 @@ namespace Lykke.Service.Tier.Modules
                     {
                         ApiKey = _appSettings.CurrentValue.PersonalDataServiceClient.ApiKey,
                         ServiceUri = _appSettings.CurrentValue.PersonalDataServiceClient.ServiceUri
-                    }, ctx.Resolve<ILogFactory>().CreateLog(nameof(PersonalDataService))))
+                    }, ctx.Resolve<ILogFactory>()))
                 .SingleInstance();
 
             builder.RegisterEmailSenderViaAzureQueueMessageProducer(_appSettings.ConnectionString(x => x.TierService.Db.ClientPersonalInfoConnString));
@@ -43,6 +43,14 @@ namespace Lykke.Service.Tier.Modules
                     _appSettings.CurrentValue.KycServiceClient,
                     ctx.Resolve<ILogFactory>().CreateLog(nameof(KycDocumentsServiceV2Client))))
                 .As<IKycDocumentsServiceV2>()
+                .SingleInstance();
+
+            builder.Register(ctx => new KycStatusServiceClient(new KycServiceClientSettings
+                    {
+                        ServiceUri = _appSettings.CurrentValue.KycServiceClient.ServiceUri,
+                        ApiKey = _appSettings.CurrentValue.KycServiceClient.ApiKey
+                    }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycDocumentsServiceV2Client))))
+                .As<IKycStatusService>()
                 .SingleInstance();
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -27,6 +28,15 @@ namespace Lykke.Service.Tier.AzureRepositories
         {
             return await _tableStorage.GetDataAsync(TierUpgradeRequestEntity.GeneratePk(tier),
                 TierUpgradeRequestEntity.GenerateRk(clientId));
+        }
+
+        public async Task<IReadOnlyList<ITierUpgradeRequest>> GetAsync(string clientId)
+        {
+            return (await _tableStorage.GetDataAsync(new[]
+            {
+                new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.Advanced), clientId),
+                new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.ProIndividual), clientId)
+            })).ToList();
         }
 
         public async Task<IReadOnlyList<ITierUpgradeRequest>> GetByTierAsync(AccountTier tier)

@@ -83,7 +83,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                         if (pushEnabled)
                             pushTemplateTask = _templateFormatter.FormatAsync("PushTierUpgradedTemplate", clientAcc.PartnerId, "EN", new { Tier = evt.Tier.ToString() });
 
-                        type = NotificationType.Info.ToString();
+                        type = NotificationType.TierUpgraded.ToString();
                         break;
                     case KycStatus.NeedToFillData:
                         var documents = await _kycDocumentsService.GetCurrentDocumentsAsync(evt.ClientId);

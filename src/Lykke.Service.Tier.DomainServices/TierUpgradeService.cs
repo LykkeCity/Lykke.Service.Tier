@@ -103,6 +103,11 @@ namespace Lykke.Service.Tier.DomainServices
             return _repository.GetAsync(clientId, tier);
         }
 
+        public Task<IReadOnlyList<ITierUpgradeRequest>> GetAsync(string clientId)
+        {
+            return _repository.GetAsync(clientId);
+        }
+
         public async Task<Dictionary<string, int>> GetCountsAsync()
         {
             var result = new Dictionary<string, int>

@@ -24,6 +24,13 @@ namespace Lykke.Service.Tier.Client.Api
         Task<TierUpgradeRequestResponse> GetAsync(string clientId, TierModel tier);
 
         /// <summary>
+        /// Gets client tier upgrade requests
+        /// </summary>
+        /// <returns></returns>
+        [Get("/api/tierupgraderequests/{clientId}")]
+        Task<IReadOnlyList<TierUpgradeRequestResponse>> GetAsync(string clientId);
+
+        /// <summary>
         /// Gets tier upgrade requests
         /// </summary>
         /// <returns></returns>
