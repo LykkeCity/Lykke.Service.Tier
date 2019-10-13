@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ using Lykke.Service.Tier.Client.Api;
 using Lykke.Service.Tier.Client.Models.Responses;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
+using Lykke.Service.Tier.Domain.Settings;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -54,17 +56,16 @@ namespace Lykke.Service.Tier.Controllers
 
             var pd = await _personalDataService.GetAsync(clientId);
 
-            AccountTier? nextTier = GetNextTier(client.Tier, pd.CountryFromPOA);
-
             var maxLimitTask = _limitsService.GetClientLimitSettingsAsync(clientId, client.Tier, pd.CountryFromPOA);
-            Task<ITierUpgradeRequest> tierUpgradeRequestTask = nextTier.HasValue
-                ? _tierUpgradeService.GetAsync(clientId, nextTier.Value)
-                : Task.FromResult((ITierUpgradeRequest)null);
+            var tierUpgradeRequestsTask = _tierUpgradeService.GetAsync(clientId);
 
-            await Task.WhenAll(maxLimitTask, tierUpgradeRequestTask);
+            await Task.WhenAll(maxLimitTask, tierUpgradeRequestsTask);
 
-            var maxLimit = maxLimitTask.Result;
-            var tierUpgradeRequest = tierUpgradeRequestTask.Result;
+            LimitSettings maxLimit = maxLimitTask.Result;
+            IReadOnlyList<ITierUpgradeRequest> tierUpgradeRequests = tierUpgradeRequestsTask.Result;
+
+            AccountTier highestRequestTier = tierUpgradeRequests.Select(x => x.Tier).OrderBy(x => x).LastOrDefault();
+            AccountTier? nextTier = GetNextTier(highestRequestTier, pd.CountryFromPOA);
 
             TierInfo tierInfo = null;
 
@@ -79,7 +80,6 @@ namespace Lykke.Service.Tier.Controllers
                         Tier = nextTier.Value,
                         MaxLimit = nextTierLimits.MaxLimit ?? 0,
                         Documents = nextTierLimits.Documents.Select(x => x.ToString()).ToArray(),
-                        DocumentsSubmitDate = tierUpgradeRequest?.Date
                     };
                 }
             }
@@ -88,11 +88,21 @@ namespace Lykke.Service.Tier.Controllers
 
             return new TierInfoResponse
             {
-                Tier = client.Tier,
-                Asset =  _settingsService.GetDefaultAsset(),
-                Current = currentDepositAmount,
-                MaxLimit = maxLimit?.MaxLimit ?? 0,
-                NextTier = tierInfo
+                CurrentTier = new CurrentTierInfo
+                {
+                    Tier = client.Tier,
+                    Asset =  _settingsService.GetDefaultAsset(),
+                    Current = currentDepositAmount,
+                    MaxLimit = maxLimit?.MaxLimit ?? 0,
+                },
+
+                NextTier = tierInfo,
+                UpgradeRequests = tierUpgradeRequests.Select(x => new UpgradeRequest
+                {
+                    Tier = x.Tier,
+                    Status = x.KycStatus.ToString(),
+                    SubmitDate = x.Date
+                }).ToArray()
             };
         }
 

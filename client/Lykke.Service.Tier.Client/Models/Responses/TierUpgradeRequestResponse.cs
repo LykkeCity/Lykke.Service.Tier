@@ -10,6 +10,5 @@ namespace Lykke.Service.Tier.Client.Models.Responses
         public string KycStatus { get; set; }
         public DateTime Date { get; set; }
         public string Comment { get; set; }
-        public int Count { get; set; }
     }
 }
