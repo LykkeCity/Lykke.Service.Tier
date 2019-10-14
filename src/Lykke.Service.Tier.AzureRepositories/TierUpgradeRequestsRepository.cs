@@ -30,7 +30,7 @@ namespace Lykke.Service.Tier.AzureRepositories
                 TierUpgradeRequestEntity.GenerateRk(clientId));
         }
 
-        public async Task<IReadOnlyList<ITierUpgradeRequest>> GetAsync(string clientId)
+        public async Task<IReadOnlyList<ITierUpgradeRequest>> GetByClientAsync(string clientId)
         {
             return (await _tableStorage.GetDataAsync(new[]
             {
@@ -42,6 +42,15 @@ namespace Lykke.Service.Tier.AzureRepositories
         public async Task<IReadOnlyList<ITierUpgradeRequest>> GetByTierAsync(AccountTier tier)
         {
             return (await _tableStorage.GetDataAsync(TierUpgradeRequestEntity.GeneratePk(tier))).ToList();
+        }
+
+        public async Task<IReadOnlyList<ITierUpgradeRequest>> GetAllAsync()
+        {
+            return (await _tableStorage.GetDataAsync(new []
+            {
+                TierUpgradeRequestEntity.GeneratePk(AccountTier.Advanced),
+                TierUpgradeRequestEntity.GeneratePk(AccountTier.ProIndividual)
+            })).ToList();
         }
 
         public Task AddCountAsync(AccountTier tier, int count)

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
@@ -26,6 +27,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ISettingsService _settingsService;
         private readonly ITemplateFormatter _templateFormatter;
         private readonly IKycStatusService _kycStatusService;
+        private readonly ITierUpgradeService _tierUpgradeService;
 
         public ClientDepositsSaga(
             IClientAccountClient clientAccountClient,
@@ -33,7 +35,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             ILimitsService limitsService,
             ISettingsService settingsService,
             ITemplateFormatter templateFormatter,
-            IKycStatusService kycStatusService
+            IKycStatusService kycStatusService,
+            ITierUpgradeService tierUpgradeService
             )
         {
             _clientAccountClient = clientAccountClient;
@@ -42,6 +45,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _settingsService = settingsService;
             _templateFormatter = templateFormatter;
             _kycStatusService = kycStatusService;
+            _tierUpgradeService = tierUpgradeService;
         }
 
         public async Task Handle(ClientDepositEvent evt, ICommandSender commandSender)
@@ -76,8 +80,28 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
             if (checkAmount > currentLimitSettings.MaxLimit.Value)
             {
-                await _kycStatusService.ChangeKycStatusAsync(evt.ClientId, KycStatus.NeedToFillData,
-                    nameof(ClientDepositsSaga));
+                var requests = await _tierUpgradeService.GetByClientAsync(evt.ClientId);
+
+                var kycStatus = KycStatus.NeedToFillData;
+
+                if (requests.Any())
+                {
+                    if (requests.Any(x => x.KycStatus == KycStatus.Pending))
+                    {
+                        kycStatus = KycStatus.Pending;
+                    }
+
+                    if (requests.Any(x => x.KycStatus == KycStatus.Rejected))
+                    {
+                        kycStatus = KycStatus.NeedToFillData;
+                    }
+                }
+                else
+                {
+                    kycStatus = KycStatus.NeedToFillData;
+                }
+
+                await _kycStatusService.ChangeKycStatusAsync(evt.ClientId, kycStatus, $"{nameof(ClientDepositsSaga)} - limit reached ({checkAmount} of {currentLimitSettings.MaxLimit.Value} {_settingsService.GetDefaultAsset()})");
             }
 
             if (checkAmount <= currentLimitSettings.MaxLimit.Value)
