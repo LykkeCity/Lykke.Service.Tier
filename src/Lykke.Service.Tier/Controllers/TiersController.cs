@@ -57,7 +57,7 @@ namespace Lykke.Service.Tier.Controllers
             var pd = await _personalDataService.GetAsync(clientId);
 
             var maxLimitTask = _limitsService.GetClientLimitSettingsAsync(clientId, client.Tier, pd.CountryFromPOA);
-            var tierUpgradeRequestsTask = _tierUpgradeService.GetAsync(clientId);
+            var tierUpgradeRequestsTask = _tierUpgradeService.GetByClientAsync(clientId);
 
             await Task.WhenAll(maxLimitTask, tierUpgradeRequestsTask);
 
