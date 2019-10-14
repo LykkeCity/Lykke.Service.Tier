@@ -11,7 +11,8 @@ namespace Lykke.Service.Tier.Domain.Services
         Task UpdateCountsAsync(string clientId, AccountTier tier, KycStatus? oldStatus, KycStatus newStatus);
         Task<IReadOnlyList<ITierUpgradeRequest>> GetByTierAsync(AccountTier tier);
         Task<ITierUpgradeRequest> GetAsync(string clientId, AccountTier tier);
-        Task<IReadOnlyList<ITierUpgradeRequest>> GetAsync(string clientId);
+        Task<IReadOnlyList<ITierUpgradeRequest>> GetByClientAsync(string clientId);
+        Task<IReadOnlyList<ITierUpgradeRequest>> GetAllAsync();
         Task<Dictionary<string, int>> GetCountsAsync();
         Task<Dictionary<string, int>> InitCache();
     }

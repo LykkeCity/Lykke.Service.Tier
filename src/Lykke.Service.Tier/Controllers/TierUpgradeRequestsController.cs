@@ -52,12 +52,22 @@ namespace Lykke.Service.Tier.Controllers
         }
 
         /// <inheritdoc cref="ITierUpgradeRequestsApi"/>
-        [HttpGet("{clientId}")]
+        [HttpGet]
+        [SwaggerOperation("TierUpgradeRequestsAll")]
+        [ProducesResponseType(typeof(IReadOnlyList<TierUpgradeRequestResponse>), (int)HttpStatusCode.OK)]
+        public async Task<IReadOnlyList<TierUpgradeRequestResponse>> GetAllAsync()
+        {
+            var result = await _tierUpgradeService.GetAllAsync();
+            return _mapper.Map<List<TierUpgradeRequestResponse>>(result);
+        }
+
+        /// <inheritdoc cref="ITierUpgradeRequestsApi"/>
+        [HttpGet("client/{clientId}")]
         [SwaggerOperation("TierUpgradeRequests")]
         [ProducesResponseType(typeof(IReadOnlyList<TierUpgradeRequestResponse>), (int)HttpStatusCode.OK)]
-        public async Task<IReadOnlyList<TierUpgradeRequestResponse>> GetAsync(string clientId)
+        public async Task<IReadOnlyList<TierUpgradeRequestResponse>> GetByClientAsync(string clientId)
         {
-            var result = await _tierUpgradeService.GetAsync(clientId);
+            var result = await _tierUpgradeService.GetByClientAsync(clientId);
             return _mapper.Map<List<TierUpgradeRequestResponse>>(result);
         }
 
