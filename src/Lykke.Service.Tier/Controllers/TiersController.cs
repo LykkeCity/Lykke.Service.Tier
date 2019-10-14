@@ -57,14 +57,16 @@ namespace Lykke.Service.Tier.Controllers
             var pd = await _personalDataService.GetAsync(clientId);
 
             var maxLimitTask = _limitsService.GetClientLimitSettingsAsync(clientId, client.Tier, pd.CountryFromPOA);
-            var tierUpgradeRequestsTask = _tierUpgradeService.GetAsync(clientId);
+            var tierUpgradeRequestsTask = _tierUpgradeService.GetByClientAsync(clientId);
 
             await Task.WhenAll(maxLimitTask, tierUpgradeRequestsTask);
 
             LimitSettings maxLimit = maxLimitTask.Result;
             IReadOnlyList<ITierUpgradeRequest> tierUpgradeRequests = tierUpgradeRequestsTask.Result;
 
-            AccountTier highestRequestTier = tierUpgradeRequests.Select(x => x.Tier).OrderBy(x => x).LastOrDefault();
+            AccountTier highestRequestTier = tierUpgradeRequests.Any()
+                ? tierUpgradeRequests.Select(x => x.Tier).OrderBy(x => x).LastOrDefault()
+                : client.Tier;
             AccountTier? nextTier = GetNextTier(highestRequestTier);
 
             TierInfo tierInfo = null;

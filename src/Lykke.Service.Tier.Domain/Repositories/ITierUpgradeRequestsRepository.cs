@@ -9,8 +9,9 @@ namespace Lykke.Service.Tier.Domain.Repositories
     {
         Task AddAsync(string clientId, AccountTier tier, KycStatus status, string comment = null);
         Task<ITierUpgradeRequest> GetAsync(string clientId, AccountTier tier);
-        Task<IReadOnlyList<ITierUpgradeRequest>> GetAsync(string clientId);
+        Task<IReadOnlyList<ITierUpgradeRequest>> GetByClientAsync(string clientId);
         Task<IReadOnlyList<ITierUpgradeRequest>> GetByTierAsync(AccountTier tier);
+        Task<IReadOnlyList<ITierUpgradeRequest>> GetAllAsync();
         Task AddCountAsync(AccountTier tier, int count);
         Task<int> GetCountAsync(AccountTier tier);
         Task<Dictionary<string, int>> GetCountsAsync();
