@@ -101,7 +101,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     kycStatus = KycStatus.NeedToFillData;
                 }
 
-                await _kycStatusService.ChangeKycStatusAsync(evt.ClientId, kycStatus, nameof(ClientDepositsSaga));
+                await _kycStatusService.ChangeKycStatusAsync(evt.ClientId, kycStatus, $"{nameof(ClientDepositsSaga)} - limit reached ({checkAmount} of {currentLimitSettings.MaxLimit.Value} {_settingsService.GetDefaultAsset()})");
             }
 
             if (checkAmount <= currentLimitSettings.MaxLimit.Value)
