@@ -64,7 +64,9 @@ namespace Lykke.Service.Tier.Controllers
             LimitSettings maxLimit = maxLimitTask.Result;
             IReadOnlyList<ITierUpgradeRequest> tierUpgradeRequests = tierUpgradeRequestsTask.Result;
 
-            AccountTier highestRequestTier = tierUpgradeRequests.Select(x => x.Tier).OrderBy(x => x).LastOrDefault();
+            AccountTier highestRequestTier = tierUpgradeRequests.Any()
+                ? tierUpgradeRequests.Select(x => x.Tier).OrderBy(x => x).LastOrDefault()
+                : client.Tier;
             AccountTier? nextTier = GetNextTier(highestRequestTier, pd.CountryFromPOA);
 
             TierInfo tierInfo = null;

@@ -67,9 +67,14 @@ namespace Lykke.Service.Tier.DomainServices
 
             var individualLimit = await _limitsRepository.GetAsync(clientId);
 
-            limit.MaxLimit = individualLimit?.Limit ?? limit.MaxLimit;
+            var result = new LimitSettings
+            {
+                Tier = limit.Tier,
+                MaxLimit = individualLimit?.Limit ?? limit.MaxLimit,
+                Documents = limit.Documents
+            };
 
-            return limit;
+            return result;
         }
 
         public async Task SaveDepositOperationAsync(ClientDepositEvent evt)
