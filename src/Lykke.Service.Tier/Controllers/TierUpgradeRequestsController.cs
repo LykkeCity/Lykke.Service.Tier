@@ -7,13 +7,13 @@ using AutoMapper;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Tier.Client.Api;
 using Lykke.Service.Tier.Client.Models;
-using Lykke.Service.Tier.Client.Models.Requests;
 using Lykke.Service.Tier.Client.Models.Responses;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
 using Lykke.Service.Tier.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using TierUpgradeRequest = Lykke.Service.Tier.Client.Models.Requests.TierUpgradeRequest;
 
 namespace Lykke.Service.Tier.Controllers
 {
