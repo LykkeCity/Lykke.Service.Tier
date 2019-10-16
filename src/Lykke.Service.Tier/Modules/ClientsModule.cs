@@ -11,6 +11,7 @@ using Lykke.Service.PersonalData.Settings;
 using Lykke.Service.TemplateFormatter;
 using Lykke.Service.Tier.Settings;
 using Lykke.SettingsReader;
+using IKycDocumentsService = Lykke.Service.Kyc.Abstractions.Services.IKycDocumentsService;
 
 namespace Lykke.Service.Tier.Modules
 {
@@ -49,8 +50,16 @@ namespace Lykke.Service.Tier.Modules
                     {
                         ServiceUri = _appSettings.CurrentValue.KycServiceClient.ServiceUri,
                         ApiKey = _appSettings.CurrentValue.KycServiceClient.ApiKey
-                    }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycDocumentsServiceV2Client))))
+                    }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycStatusServiceClient))))
                 .As<IKycStatusService>()
+                .SingleInstance();
+
+            builder.Register(ctx => new KycDocumentsServiceClient(new KycServiceClientSettings
+                    {
+                        ServiceUri = _appSettings.CurrentValue.KycServiceClient.ServiceUri,
+                        ApiKey = _appSettings.CurrentValue.KycServiceClient.ApiKey
+                    }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycDocumentsServiceV2Client))))
+                .As<IKycDocumentsService>()
                 .SingleInstance();
         }
     }
