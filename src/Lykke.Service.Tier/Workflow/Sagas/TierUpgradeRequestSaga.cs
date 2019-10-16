@@ -27,6 +27,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly IClientAccountClient _clientAccountClient;
         private readonly IPersonalDataService _personalDataService;
         private readonly IKycDocumentsServiceV2 _kycDocumentsService;
+        private readonly ITiersService _tiersService;
         private readonly IEmailSender _emailSender;
         private readonly ITemplateFormatter _templateFormatter;
 
@@ -35,6 +36,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
             IKycDocumentsServiceV2 kycDocumentsService,
+            ITiersService tiersService,
             IEmailSender emailSender,
             ITemplateFormatter templateFormatter
         )
@@ -43,6 +45,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _clientAccountClient = clientAccountClient;
             _personalDataService = personalDataService;
             _kycDocumentsService = kycDocumentsService;
+            _tiersService = tiersService;
             _emailSender = emailSender;
             _templateFormatter = templateFormatter;
         }
@@ -77,11 +80,30 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                 switch (evt.NewStatus)
                 {
                     case KycStatus.Ok:
+                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier,
+                            personalData.CountryFromPOA);
+
+                        var sb = new StringBuilder();
+
+                        if (tierInfo.NextTier != null)
+                        {
+                            sb.AppendLine(
+                                $"If you wish to increase deposit limit, just upgrade to an {tierInfo.NextTier.Tier} account.");
+                            sb.AppendLine("<br>Or use Lykke Wallet mobile app (More->Profile->Upgrade)");
+                        }
+
                         emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradedTemplate", clientAcc.PartnerId,
-                            "EN", new { FullName = personalData.FullName, Tier = evt.Tier.ToString(), Year = DateTime.UtcNow.Year });
+                            "EN", new
+                            {
+                                Tier = evt.Tier.ToString(),
+                                Year = DateTime.UtcNow.Year,
+                                Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}",
+                                UpgradeText = sb.ToString()
+                            });
 
                         if (pushEnabled)
-                            pushTemplateTask = _templateFormatter.FormatAsync("PushTierUpgradedTemplate", clientAcc.PartnerId, "EN", new { Tier = evt.Tier.ToString() });
+                            pushTemplateTask = _templateFormatter.FormatAsync("PushTierUpgradedTemplate", clientAcc.PartnerId, "EN",
+                                new { Tier = evt.Tier.ToString(), Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}"});
 
                         type = NotificationType.TierUpgraded.ToString();
                         break;
@@ -106,16 +128,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     case KycStatus.Rejected:
                         emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradeRejectedTemplate", clientAcc.PartnerId,
                             "EN", new { FullName = personalData.FullName, Tier = evt.Tier.ToString(), Year = DateTime.UtcNow.Year });
-                        break;
-
-                    case KycStatus.RestrictedArea:
-                        emailTemplateTask = _templateFormatter.FormatAsync("RestrictedAreaTemplate", clientAcc.PartnerId,
-                            "EN", new { FirstName = personalData.FirstName, LastName = personalData.LastName, Year = DateTime.UtcNow.Year });
-
-                        if (pushEnabled)
-                            pushTemplateTask = _templateFormatter.FormatAsync("PushKycRestrictedTemplate", clientAcc.PartnerId, "EN", new { });
-
-                        type = NotificationType.KycRestrictedArea.ToString();
                         break;
 
                     case KycStatus.Pending:
