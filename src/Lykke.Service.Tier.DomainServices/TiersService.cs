@@ -77,7 +77,8 @@ namespace Lykke.Service.Tier.DomainServices
             KycStatus kycStatus = kycStatusTask.Result;
             bool isHighRiskCountry = _settingsService.IsHighRiskCountry(country);
 
-            if (clientTier == AccountTier.Beginner && !isHighRiskCountry && kycStatus != KycStatus.Ok)
+            if (clientTier == AccountTier.Beginner && !isHighRiskCountry && kycStatus != KycStatus.Ok &&
+                kycStatus != KycStatus.NeedToFillData && !tierUpgradeRequests.Any())
             {
                 var docs = (await _kycDocumentsService.GetDocumentsAsync(clientId)).ToList();
                 var date = docs.OrderByDescending(x => x.DateTime).FirstOrDefault()?.DateTime;
@@ -87,7 +88,9 @@ namespace Lykke.Service.Tier.DomainServices
                     return new TierUpgradeRequest
                     {
                         Tier = AccountTier.Apprentice,
-                        Status = KycStatus.Pending.ToString(),
+                        Status = kycStatus == KycStatus.Pending
+                            ? KycStatus.Pending.ToString()
+                            : KycStatus.Rejected.ToString(),
                         SubmitDate = date.Value
                     };
                 }
