@@ -123,7 +123,7 @@ namespace Lykke.Service.Tier.DomainServices
                 return new TierUpgradeRequest
                 {
                     Tier = lastPendingRequest.Tier,
-                    Status = KycStatus.Pending.ToString(),
+                    Status = lastPendingRequest.KycStatus.ToString(),
                     SubmitDate = lastPendingRequest.Date
                 };
             }
