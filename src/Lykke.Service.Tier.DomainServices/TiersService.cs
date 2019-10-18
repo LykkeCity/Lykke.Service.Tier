@@ -83,12 +83,17 @@ namespace Lykke.Service.Tier.DomainServices
                 var docs = (await _kycDocumentsService.GetDocumentsAsync(clientId)).ToList();
                 var date = docs.OrderByDescending(x => x.DateTime).FirstOrDefault()?.DateTime;
 
+                var kycStatuses = new List<KycStatus>
+                {
+                    KycStatus.Pending, KycStatus.ReviewDone, KycStatus.JumioInProgress, KycStatus.JumioOk
+                };
+
                 if (docs.Any() && date.HasValue)
                 {
                     return new TierUpgradeRequest
                     {
                         Tier = AccountTier.Apprentice,
-                        Status = kycStatus == KycStatus.Pending
+                        Status = kycStatuses.Contains(kycStatus)
                             ? KycStatus.Pending.ToString()
                             : KycStatus.Rejected.ToString(),
                         SubmitDate = date.Value
