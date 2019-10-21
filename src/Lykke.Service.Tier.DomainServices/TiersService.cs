@@ -101,7 +101,7 @@ namespace Lykke.Service.Tier.DomainServices
                 }
             }
 
-            var rejectedRequest = tierUpgradeRequests.FirstOrDefault(x => x.KycStatus == KycStatus.Rejected);
+            var rejectedRequest = tierUpgradeRequests.FirstOrDefault(x => x.KycStatus != KycStatus.Ok && x.KycStatus != KycStatus.Pending);
 
             if (rejectedRequest != null)
             {
