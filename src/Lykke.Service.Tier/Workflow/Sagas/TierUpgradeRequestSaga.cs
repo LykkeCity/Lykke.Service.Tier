@@ -88,7 +88,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                         if (tierInfo.NextTier != null)
                         {
                             sb.AppendLine(
-                                $"If you wish to increase deposit limit, just upgrade to an {tierInfo.NextTier.Tier} account using our web app.");
+                                $"If you wish to increase deposit limit, just upgrade to an {tierInfo.NextTier.Tier} account.");
                             sb.AppendLine("<br>Or use Lykke Wallet mobile app (More->Profile->Upgrade)");
                         }
 
