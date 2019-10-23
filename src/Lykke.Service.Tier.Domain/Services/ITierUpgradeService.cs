@@ -7,7 +7,7 @@ namespace Lykke.Service.Tier.Domain.Services
 {
     public interface ITierUpgradeService
     {
-        Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer, string comment = null);
+        Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer);
         Task UpdateCountsAsync(string clientId, AccountTier tier, KycStatus? oldStatus, KycStatus newStatus);
         Task<IReadOnlyList<ITierUpgradeRequest>> GetByTierAsync(AccountTier tier);
         Task<ITierUpgradeRequest> GetAsync(string clientId, AccountTier tier);
