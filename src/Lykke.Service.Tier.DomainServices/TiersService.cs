@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
-using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
 
@@ -15,29 +14,22 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly ILimitsService _limitsService;
         private readonly ISettingsService _settingsService;
         private readonly ITierUpgradeService _tierUpgradeService;
-        private readonly IKycStatusService _kycStatusService;
-        private readonly IKycDocumentsService _kycDocumentsService;
 
         public TiersService(
             ILimitsService limitsService,
             ISettingsService settingsService,
-            ITierUpgradeService tierUpgradeService,
-            IKycStatusService kycStatusService,
-            IKycDocumentsService kycDocumentsService
-
+            ITierUpgradeService tierUpgradeService
             )
         {
             _limitsService = limitsService;
             _settingsService = settingsService;
             _tierUpgradeService = tierUpgradeService;
-            _kycStatusService = kycStatusService;
-            _kycDocumentsService = kycDocumentsService;
         }
 
         public async Task<ClientTierInfo> GetClientTierInfoAsync(string clientId, AccountTier clientTier, string country)
         {
             CurrentTier currentTier = await GetCurrentTierAync(clientId, clientTier, country);
-            TierUpgradeRequest upgradeRequet = await GetUpgradeRequestAsync(clientId, clientTier, country);
+            TierUpgradeRequest upgradeRequet = await GetUpgradeRequestAsync(clientId);
             NextTier nextTier = await GetNextTierAsync(clientId, clientTier, country, upgradeRequet);
 
             var result = new ClientTierInfo
@@ -66,40 +58,9 @@ namespace Lykke.Service.Tier.DomainServices
             };
         }
 
-        internal async Task<TierUpgradeRequest> GetUpgradeRequestAsync(string clientId, AccountTier clientTier, string country)
+        internal async Task<TierUpgradeRequest> GetUpgradeRequestAsync(string clientId)
         {
-            var tierUpgradeRequestsTask = _tierUpgradeService.GetByClientAsync(clientId);
-            var kycStatusTask = _kycStatusService.GetKycStatusAsync(clientId);
-
-            await Task.WhenAll(tierUpgradeRequestsTask, kycStatusTask);
-
-            IReadOnlyList<ITierUpgradeRequest> tierUpgradeRequests = tierUpgradeRequestsTask.Result;
-            KycStatus kycStatus = kycStatusTask.Result;
-            bool isHighRiskCountry = _settingsService.IsHighRiskCountry(country);
-
-            if (clientTier == AccountTier.Beginner && !isHighRiskCountry && kycStatus != KycStatus.Ok &&
-                kycStatus != KycStatus.NeedToFillData && !tierUpgradeRequests.Any())
-            {
-                var docs = (await _kycDocumentsService.GetDocumentsAsync(clientId)).ToList();
-                var date = docs.OrderByDescending(x => x.DateTime).FirstOrDefault()?.DateTime;
-
-                var kycStatuses = new List<KycStatus>
-                {
-                    KycStatus.Pending, KycStatus.ReviewDone, KycStatus.JumioInProgress, KycStatus.JumioOk
-                };
-
-                if (docs.Any() && date.HasValue)
-                {
-                    return new TierUpgradeRequest
-                    {
-                        Tier = AccountTier.Apprentice,
-                        Status = kycStatuses.Contains(kycStatus)
-                            ? KycStatus.Pending.ToString()
-                            : KycStatus.Rejected.ToString(),
-                        SubmitDate = date.Value
-                    };
-                }
-            }
+            IReadOnlyList<ITierUpgradeRequest> tierUpgradeRequests = await _tierUpgradeService.GetByClientAsync(clientId);
 
             var rejectedRequest = tierUpgradeRequests
                 .OrderBy(x => x.Tier)
@@ -164,6 +125,7 @@ namespace Lykke.Service.Tier.DomainServices
                 switch (upgradeRequest.Status)
                 {
                     case nameof(KycStatus.Rejected):
+                    case nameof(KycStatus.RestrictedArea):
                         return upgradeRequest.Tier;
                     case nameof(KycStatus.Pending):
                         tier = upgradeRequest.Tier;

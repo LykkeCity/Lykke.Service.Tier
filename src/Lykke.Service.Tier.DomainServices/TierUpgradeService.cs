@@ -44,7 +44,7 @@ namespace Lykke.Service.Tier.DomainServices
             _clientAccountClient = clientAccountClient;
         }
 
-        public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer, string comment = null)
+        public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer)
         {
             ITierUpgradeRequest currentTierRequest = await GetAsync(clientId, tier);
 
@@ -62,12 +62,6 @@ namespace Lykke.Service.Tier.DomainServices
             if (status == KycStatus.Ok)
             {
                 await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
-                await _clientAccountClient.ClientSettings.SetCashOutBlockAsync(new CashOutBlockRequest
-                {
-                    ClientId = clientId,
-                    CashOutBlocked = false,
-                    TradesBlocked = false
-                });
             }
 
             if (currentTierRequest?.KycStatus != status)
@@ -117,6 +111,7 @@ namespace Lykke.Service.Tier.DomainServices
         {
             var result = new Dictionary<string, int>
             {
+                { AccountTier.Apprentice.ToString(), 0 },
                 { AccountTier.Advanced.ToString(), 0 },
                 { AccountTier.ProIndividual.ToString(), 0 }
             };

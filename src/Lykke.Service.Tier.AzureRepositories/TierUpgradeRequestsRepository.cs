@@ -34,6 +34,7 @@ namespace Lykke.Service.Tier.AzureRepositories
         {
             return (await _tableStorage.GetDataAsync(new[]
             {
+                new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.Apprentice), clientId),
                 new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.Advanced), clientId),
                 new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.ProIndividual), clientId)
             })).ToList();
@@ -48,6 +49,7 @@ namespace Lykke.Service.Tier.AzureRepositories
         {
             return (await _tableStorage.GetDataAsync(new []
             {
+                TierUpgradeRequestEntity.GeneratePk(AccountTier.Apprentice),
                 TierUpgradeRequestEntity.GeneratePk(AccountTier.Advanced),
                 TierUpgradeRequestEntity.GeneratePk(AccountTier.ProIndividual)
             })).ToList();
@@ -70,12 +72,14 @@ namespace Lykke.Service.Tier.AzureRepositories
         {
             var result = new Dictionary<string, int>
             {
+                { AccountTier.Apprentice.ToString(), 0 },
                 { AccountTier.Advanced.ToString(), 0 },
                 { AccountTier.ProIndividual.ToString(), 0 }
             };
 
             var partitionKeys = new List<string>
             {
+                TierUpgradeRequestEntity.GenerateCountPk(AccountTier.Apprentice),
                 TierUpgradeRequestEntity.GenerateCountPk(AccountTier.Advanced),
                 TierUpgradeRequestEntity.GenerateCountPk(AccountTier.ProIndividual)
             };

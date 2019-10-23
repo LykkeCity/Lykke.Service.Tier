@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lykke.Service.ClientAccount.Client.Models;
-using Lykke.Service.Kyc.Abstractions.Domain.Documents;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
-using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.Tier.AzureRepositories;
 using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
@@ -13,18 +10,15 @@ using Lykke.Service.Tier.Domain.Settings;
 using Lykke.Service.Tier.DomainServices;
 using Moq;
 using Xunit;
-using KycDocument = Lykke.Service.Kyc.Abstractions.Domain.Documents.KycDocument;
 
 namespace Lykke.Service.Tier.Tests
 {
     public class TiersTests
     {
-        private Mock<ILimitsService> _limitsService;
-        private Mock<ISettingsService> _settingsService;
-        private Mock<ITierUpgradeService> _tierUpgradeService;
-        private Mock<IKycStatusService> _kycStatusService;
-        private Mock<IKycDocumentsService> _kycDocumentsService;
-        private TiersService _tierService;
+        private readonly Mock<ILimitsService> _limitsService;
+        private readonly Mock<ISettingsService> _settingsService;
+        private readonly Mock<ITierUpgradeService> _tierUpgradeService;
+        private readonly TiersService _tierService;
         private const string ClientId = "1";
         private const string HighRiskCountry = "High";
         private const string LowMidRiskCountry = "Low";
@@ -34,17 +28,14 @@ namespace Lykke.Service.Tier.Tests
             _limitsService = new Mock<ILimitsService>();
             _settingsService = new Mock<ISettingsService>();
             _tierUpgradeService = new Mock<ITierUpgradeService>();
-            _kycStatusService = new Mock<IKycStatusService>();
-            _kycDocumentsService = new Mock<IKycDocumentsService>();
 
-            _tierService = new TiersService(_limitsService.Object, _settingsService.Object, _tierUpgradeService.Object,
-                _kycStatusService.Object, _kycDocumentsService.Object);
+            _tierService = new TiersService(_limitsService.Object, _settingsService.Object, _tierUpgradeService.Object);
         }
 
         [Fact]
         public async Task TierInfo_JustRegisteredClient_Ntfd_LowRisk()
         {
-            InitTest(KycStatus.NeedToFillData);
+            InitTest();
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
 
             CheckResult(info, AccountTier.Beginner, AccountTier.Apprentice);
@@ -53,7 +44,7 @@ namespace Lykke.Service.Tier.Tests
         [Fact]
         public async Task TierInfo_JustRegisteredClient_Ntfd_HighRisk()
         {
-            InitTest(KycStatus.NeedToFillData);
+            InitTest();
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, HighRiskCountry);
 
             CheckResult(info, AccountTier.Beginner, AccountTier.ProIndividual);
@@ -62,7 +53,16 @@ namespace Lykke.Service.Tier.Tests
         [Fact]
         public async Task TierInfo_JustRegisteredClient_Pending_SubmitedToApprentice_LowRisk()
         {
-            InitTest(KycStatus.Pending, documents: new List<IKycDocument>{new KycDocument{DateTime = DateTime.UtcNow}});
+            var requests = new List<ITierUpgradeRequest>
+            {
+                new TierUpgradeRequestEntity
+                {
+                    Tier = AccountTier.Apprentice,
+                    KycStatus = KycStatus.Pending
+                }
+            };
+
+            InitTest(requests);
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
 
             CheckResult(info, AccountTier.Beginner, AccountTier.Advanced,
@@ -81,9 +81,7 @@ namespace Lykke.Service.Tier.Tests
                 }
             };
 
-            var documents = new List<IKycDocument> {new KycDocument {DateTime = DateTime.UtcNow}};
-
-            InitTest(KycStatus.Pending, requests, documents);
+            InitTest(requests);
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, HighRiskCountry);
 
             CheckResult(info, AccountTier.Beginner, null, AccountTier.ProIndividual, KycStatus.Pending.ToString());
@@ -101,7 +99,7 @@ namespace Lykke.Service.Tier.Tests
                 }
             };
 
-            InitTest(KycStatus.Ok, requests: requests);
+            InitTest(requests);
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Apprentice, LowMidRiskCountry);
 
             CheckResult(info, AccountTier.Apprentice, AccountTier.ProIndividual,
@@ -125,7 +123,7 @@ namespace Lykke.Service.Tier.Tests
                 }
             };
 
-            InitTest(KycStatus.Ok, requests: requests);
+            InitTest(requests);
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Apprentice, LowMidRiskCountry);
 
             CheckResult(info, AccountTier.Apprentice, null,
@@ -149,20 +147,18 @@ namespace Lykke.Service.Tier.Tests
                 }
             };
 
-            InitTest(KycStatus.Ok, requests: requests);
+            InitTest(requests);
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Apprentice, LowMidRiskCountry);
 
             CheckResult(info, AccountTier.Apprentice, AccountTier.Advanced,
                 AccountTier.Advanced, KycStatus.Rejected.ToString());
         }
 
-        private void InitTest(KycStatus kycStatus, List<ITierUpgradeRequest> requests = null, List<IKycDocument> documents = null)
+        private void InitTest(List<ITierUpgradeRequest> requests = null)
         {
-            _kycStatusService.Setup(x => x.GetKycStatusAsync(It.IsAny<string>())).ReturnsAsync(kycStatus);
             _tierUpgradeService.Setup(x => x.GetByClientAsync(It.IsAny<string>())).ReturnsAsync(requests ?? new List<ITierUpgradeRequest>());
             _settingsService.Setup(x => x.IsHighRiskCountry(HighRiskCountry)).Returns(true);
             _settingsService.Setup(x => x.IsHighRiskCountry(LowMidRiskCountry)).Returns(false);
-            _kycDocumentsService.Setup(x => x.GetDocumentsAsync(It.IsAny<string>())).ReturnsAsync(documents ?? new List<IKycDocument>());
             _limitsService.Setup(x => x.GetClientLimitSettingsAsync(It.IsAny<string>(), AccountTier.Apprentice, LowMidRiskCountry))
                 .ReturnsAsync(new LimitSettings
                 {
@@ -176,7 +172,7 @@ namespace Lykke.Service.Tier.Tests
                 {
                     Tier = AccountTier.Apprentice,
                     Documents = new List<DocumentType>{ DocumentType.PoA },
-                    MaxLimit = 1500
+                    MaxLimit = 15000
                 });
 
             _limitsService.Setup(x => x.GetClientLimitSettingsAsync(It.IsAny<string>(), AccountTier.ProIndividual, LowMidRiskCountry))
