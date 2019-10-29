@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Kyc.Contract.Events;
@@ -12,15 +11,12 @@ namespace Lykke.Service.Tier.Workflow.Projections
     public class KycStatusChangedProjection
     {
         private readonly ITierUpgradeService _tierUpgradeService;
-        private readonly IClientAccountClient _clientAccountClient;
 
         public KycStatusChangedProjection(
-            ITierUpgradeService tierUpgradeService,
-            IClientAccountClient clientAccountClient
+            ITierUpgradeService tierUpgradeService
             )
         {
             _tierUpgradeService = tierUpgradeService;
-            _clientAccountClient = clientAccountClient;
         }
 
         public async Task Handle(KycStatusChangedEvent evt)
@@ -45,7 +41,7 @@ namespace Lykke.Service.Tier.Workflow.Projections
                         .OrderBy(x => x.Tier)
                         .FirstOrDefault(x => x.KycStatus != KycStatus.Ok);
 
-                    if (request != null)
+                    if (request != null && request.KycStatus != status)
                     {
                         await _tierUpgradeService.AddAsync(evt.ClientId, request.Tier, status,
                             nameof(KycStatusChangedProjection));

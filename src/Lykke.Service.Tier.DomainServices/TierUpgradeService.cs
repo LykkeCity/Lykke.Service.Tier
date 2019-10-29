@@ -9,6 +9,7 @@ using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
 using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
+using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Audit;
@@ -28,13 +29,15 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly ITierUpgradeRequestsRepository _repository;
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly IClientAccountClient _clientAccountClient;
+        private readonly IKycStatusService _kycStatusService;
 
         public TierUpgradeService(
             string instanceName,
             IDatabase database,
             ITierUpgradeRequestsRepository repository,
             IAuditLogRepository auditLogRepository,
-            IClientAccountClient clientAccountClient
+            IClientAccountClient clientAccountClient,
+            IKycStatusService kycStatusService
         )
         {
             _instanceName = instanceName;
@@ -42,6 +45,7 @@ namespace Lykke.Service.Tier.DomainServices
             _repository = repository;
             _auditLogRepository = auditLogRepository;
             _clientAccountClient = clientAccountClient;
+            _kycStatusService = kycStatusService;
         }
 
         public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer)
@@ -59,9 +63,15 @@ namespace Lykke.Service.Tier.DomainServices
                 Changer = changer
             });
 
-            if (status == KycStatus.Ok)
+            switch (status)
             {
-                await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
+                case KycStatus.Ok:
+                    await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
+                    break;
+                case KycStatus.Rejected:
+                case KycStatus.RestrictedArea:
+                    await _kycStatusService.ChangeKycStatusAsync(clientId, status, nameof(TierUpgradeService));
+                    break;
             }
 
             if (currentTierRequest?.KycStatus != status)
