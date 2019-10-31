@@ -84,6 +84,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                             personalData.CountryFromPOA);
 
                         var sb = new StringBuilder();
+                        bool noAmountTemplate = tierInfo.CurrentTier.MaxLimit > 0;
 
                         if (tierInfo.NextTier != null)
                         {
@@ -92,7 +93,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                             sb.AppendLine("<br>Or use Lykke Wallet mobile app (More->Profile->Upgrade)");
                         }
 
-                        emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradedTemplate", clientAcc.PartnerId,
+                        emailTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "TierUpgradedNoAmountTemplate" : "TierUpgradedTemplate", clientAcc.PartnerId,
                             "EN", new
                             {
                                 Tier = evt.Tier.ToString(),
@@ -101,7 +102,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                                 UpgradeText = sb.ToString()
                             });
 
-                        if (pushEnabled)
+                        if (pushEnabled && !noAmountTemplate)
                             pushTemplateTask = _templateFormatter.FormatAsync("PushTierUpgradedTemplate", clientAcc.PartnerId, "EN",
                                 new { Tier = evt.Tier.ToString(), Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}"});
 
