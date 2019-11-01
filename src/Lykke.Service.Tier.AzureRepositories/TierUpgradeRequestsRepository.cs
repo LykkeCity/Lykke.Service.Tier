@@ -19,9 +19,18 @@ namespace Lykke.Service.Tier.AzureRepositories
             _tableStorage = tableStorage;
         }
 
-        public Task AddAsync(string clientId, AccountTier tier, KycStatus status, string comment = null)
+        public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string comment = null)
         {
-            return _tableStorage.InsertOrReplaceAsync(TierUpgradeRequestEntity.Create(clientId, tier, status, comment));
+            var request = await GetAsync(clientId, tier);
+
+            var item = TierUpgradeRequestEntity.Create(clientId, tier, status, comment);
+
+            if (request != null && status != KycStatus.Pending)
+            {
+                item.Date = request.Date;
+            }
+
+            await _tableStorage.InsertOrReplaceAsync(item);
         }
 
         public async Task<ITierUpgradeRequest> GetAsync(string clientId, AccountTier tier)
