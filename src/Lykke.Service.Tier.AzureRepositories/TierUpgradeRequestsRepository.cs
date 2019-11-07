@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
+using AzureStorage.Tables.Templates.Index;
 using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Tier.Domain;
@@ -13,24 +14,27 @@ namespace Lykke.Service.Tier.AzureRepositories
     public class TierUpgradeRequestsRepository : ITierUpgradeRequestsRepository
     {
         private readonly INoSQLTableStorage<TierUpgradeRequestEntity> _tableStorage;
+        private readonly INoSQLTableStorage<AzureIndex> _index;
+        private const string PendingRequestsIndex = "PendingRequests";
 
-        public TierUpgradeRequestsRepository(INoSQLTableStorage<TierUpgradeRequestEntity> tableStorage)
+        public TierUpgradeRequestsRepository(
+            INoSQLTableStorage<TierUpgradeRequestEntity> tableStorage,
+            INoSQLTableStorage<AzureIndex> index)
         {
             _tableStorage = tableStorage;
+            _index = index;
         }
 
-        public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string comment = null)
+        public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string comment = null, DateTime? date = null)
         {
-            var request = await GetAsync(clientId, tier);
-
-            var item = TierUpgradeRequestEntity.Create(clientId, tier, status, comment);
-
-            if (request != null && status != KycStatus.Pending)
-            {
-                item.Date = request.Date;
-            }
-
+            var item = TierUpgradeRequestEntity.Create(clientId, tier, status, comment, date);
             await _tableStorage.InsertOrReplaceAsync(item);
+
+            if (status == KycStatus.Pending)
+            {
+                var indexEntity = AzureIndex.Create(PendingRequestsIndex, GetPendingRequestIndexRk(clientId, tier), item);
+                await _index.InsertOrMergeAsync(indexEntity);
+            }
         }
 
         public async Task<ITierUpgradeRequest> GetAsync(string clientId, AccountTier tier)
@@ -54,14 +58,15 @@ namespace Lykke.Service.Tier.AzureRepositories
             return (await _tableStorage.GetDataAsync(TierUpgradeRequestEntity.GeneratePk(tier))).ToList();
         }
 
-        public async Task<IReadOnlyList<ITierUpgradeRequest>> GetAllAsync()
+        public async Task<IReadOnlyList<ITierUpgradeRequest>> GetPendingRequestsAsync()
         {
-            return (await _tableStorage.GetDataAsync(new []
-            {
-                TierUpgradeRequestEntity.GeneratePk(AccountTier.Apprentice),
-                TierUpgradeRequestEntity.GeneratePk(AccountTier.Advanced),
-                TierUpgradeRequestEntity.GeneratePk(AccountTier.ProIndividual)
-            })).ToList();
+            IEnumerable<AzureIndex> indexes = await _index.GetDataAsync(PendingRequestsIndex);
+            return (await _tableStorage.GetDataAsync(indexes)).ToList();
+        }
+
+        public Task DeletePendingRequestIndexAsync(string clientId, AccountTier tier)
+        {
+            return _index.DeleteIfExistAsync(PendingRequestsIndex, GetPendingRequestIndexRk(clientId, tier));
         }
 
         public Task AddCountAsync(AccountTier tier, int count)
@@ -102,5 +107,7 @@ namespace Lykke.Service.Tier.AzureRepositories
 
             return result;
         }
+
+        private string GetPendingRequestIndexRk(string clientId, AccountTier tier) => $"{clientId}_{tier}";
     }
 }

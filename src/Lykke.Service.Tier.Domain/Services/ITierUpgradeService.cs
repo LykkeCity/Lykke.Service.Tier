@@ -12,7 +12,7 @@ namespace Lykke.Service.Tier.Domain.Services
         Task<IReadOnlyList<ITierUpgradeRequest>> GetByTierAsync(AccountTier tier);
         Task<ITierUpgradeRequest> GetAsync(string clientId, AccountTier tier);
         Task<IReadOnlyList<ITierUpgradeRequest>> GetByClientAsync(string clientId);
-        Task<IReadOnlyList<ITierUpgradeRequest>> GetAllAsync();
+        Task<IReadOnlyList<ITierUpgradeRequest>> GetPendingRequestsAsync();
         Task<Dictionary<string, int>> GetCountsAsync();
         Task<Dictionary<string, int>> InitCache();
     }
