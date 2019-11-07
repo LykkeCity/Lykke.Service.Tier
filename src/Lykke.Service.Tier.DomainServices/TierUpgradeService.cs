@@ -7,7 +7,6 @@ using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
-using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.Tier.Contract;
@@ -51,8 +50,15 @@ namespace Lykke.Service.Tier.DomainServices
         public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer)
         {
             ITierUpgradeRequest currentTierRequest = await GetAsync(clientId, tier);
+            DateTime? requestDate = null;
 
-            await _repository.AddAsync(clientId, tier, status);
+            if (currentTierRequest != null && status != KycStatus.Pending)
+            {
+                requestDate = currentTierRequest.Date;
+                await _repository.DeletePendingRequestIndexAsync(clientId, currentTierRequest.Tier);
+            }
+
+            await _repository.AddAsync(clientId, tier, status, date: requestDate);
 
             await _auditLogRepository.InsertRecordAsync(clientId, new AuditLogData
             {
@@ -112,9 +118,9 @@ namespace Lykke.Service.Tier.DomainServices
             return _repository.GetByClientAsync(clientId);
         }
 
-        public Task<IReadOnlyList<ITierUpgradeRequest>> GetAllAsync()
+        public Task<IReadOnlyList<ITierUpgradeRequest>> GetPendingRequestsAsync()
         {
-            return _repository.GetAllAsync();
+            return _repository.GetPendingRequestsAsync();
         }
 
         public async Task<Dictionary<string, int>> GetCountsAsync()

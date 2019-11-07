@@ -1,5 +1,6 @@
 using Autofac;
 using AzureStorage.Tables;
+using AzureStorage.Tables.Templates.Index;
 using JetBrains.Annotations;
 using Lykke.Common.Log;
 using Lykke.Service.Tier.AzureRepositories;
@@ -30,7 +31,10 @@ namespace Lykke.Service.Tier.Modules
             builder.Register(ctx =>
                 new TierUpgradeRequestsRepository(AzureTableStorage<TierUpgradeRequestEntity>.Create(
                     _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
-                    "TierUpgradeRequests", ctx.Resolve<ILogFactory>()))
+                    "TierUpgradeRequests", ctx.Resolve<ILogFactory>()),
+                    AzureTableStorage<AzureIndex>.Create(
+                        _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                        "TierUpgradeRequests", ctx.Resolve<ILogFactory>()))
             ).As<ITierUpgradeRequestsRepository>().SingleInstance();
 
             builder.Register(ctx =>

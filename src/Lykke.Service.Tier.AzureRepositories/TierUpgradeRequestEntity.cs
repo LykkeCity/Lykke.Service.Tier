@@ -20,7 +20,7 @@ namespace Lykke.Service.Tier.AzureRepositories
         public static string GenerateCountPk(AccountTier tier) => $"{tier}Count";
         public static string GenerateCountRk() => "Count";
 
-        public static TierUpgradeRequestEntity Create(string clientId, AccountTier tier, KycStatus status, string comment)
+        public static TierUpgradeRequestEntity Create(string clientId, AccountTier tier, KycStatus status, string comment, DateTime? date = null)
         {
             return new TierUpgradeRequestEntity
             {
@@ -29,7 +29,7 @@ namespace Lykke.Service.Tier.AzureRepositories
                 ClientId = clientId,
                 Tier = tier,
                 KycStatus = status,
-                Date = DateTime.UtcNow,
+                Date = date ?? DateTime.UtcNow,
                 Comment = comment
             };
         }
