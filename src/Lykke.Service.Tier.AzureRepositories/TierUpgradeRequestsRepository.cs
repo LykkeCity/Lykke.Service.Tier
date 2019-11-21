@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage;
 using AzureStorage.Tables.Templates.Index;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Repositories;
 
@@ -47,7 +47,6 @@ namespace Lykke.Service.Tier.AzureRepositories
         {
             return (await _tableStorage.GetDataAsync(new[]
             {
-                new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.Apprentice), clientId),
                 new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.Advanced), clientId),
                 new Tuple<string, string>(TierUpgradeRequestEntity.GeneratePk(AccountTier.ProIndividual), clientId)
             })).ToList();
@@ -86,14 +85,12 @@ namespace Lykke.Service.Tier.AzureRepositories
         {
             var result = new Dictionary<string, int>
             {
-                { AccountTier.Apprentice.ToString(), 0 },
                 { AccountTier.Advanced.ToString(), 0 },
                 { AccountTier.ProIndividual.ToString(), 0 }
             };
 
             var partitionKeys = new List<string>
             {
-                TierUpgradeRequestEntity.GenerateCountPk(AccountTier.Apprentice),
                 TierUpgradeRequestEntity.GenerateCountPk(AccountTier.Advanced),
                 TierUpgradeRequestEntity.GenerateCountPk(AccountTier.ProIndividual)
             };

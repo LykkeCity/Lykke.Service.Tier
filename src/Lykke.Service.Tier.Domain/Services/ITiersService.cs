@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Lykke.Service.ClientAccount.Client.Models;
+using Lykke.Service.Tier.Contract;
 
 namespace Lykke.Service.Tier.Domain.Services
 {

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Limitations.Client.Events;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Settings;
 
 namespace Lykke.Service.Tier.Domain.Services

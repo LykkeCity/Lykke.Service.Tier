@@ -1,5 +1,5 @@
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
+using Lykke.Service.Tier.Contract;
 
 namespace Lykke.Service.Tier.Domain.Events
 {
