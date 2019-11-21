@@ -38,7 +38,7 @@ namespace Lykke.Service.Tier.Tests
             InitTest();
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
 
-            CheckResult(info, AccountTier.Beginner, AccountTier.Apprentice);
+            CheckResult(info, AccountTier.Beginner, AccountTier.Advanced);
         }
 
         [Fact]
@@ -57,7 +57,7 @@ namespace Lykke.Service.Tier.Tests
             {
                 new TierUpgradeRequestEntity
                 {
-                    Tier = AccountTier.Apprentice,
+                    Tier = AccountTier.Advanced,
                     KycStatus = KycStatus.Pending
                 }
             };
@@ -65,8 +65,8 @@ namespace Lykke.Service.Tier.Tests
             InitTest(requests);
             var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
 
-            CheckResult(info, AccountTier.Beginner, AccountTier.Advanced,
-                AccountTier.Apprentice, KycStatus.Pending.ToString());
+            CheckResult(info, AccountTier.Beginner, AccountTier.ProIndividual,
+                AccountTier.Advanced, KycStatus.Pending.ToString());
         }
 
         [Fact]
@@ -100,9 +100,9 @@ namespace Lykke.Service.Tier.Tests
             };
 
             InitTest(requests);
-            var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Apprentice, LowMidRiskCountry);
+            var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
 
-            CheckResult(info, AccountTier.Apprentice, AccountTier.ProIndividual,
+            CheckResult(info, AccountTier.Beginner, AccountTier.ProIndividual,
                 AccountTier.Advanced, KycStatus.Pending.ToString());
         }
 
@@ -124,9 +124,9 @@ namespace Lykke.Service.Tier.Tests
             };
 
             InitTest(requests);
-            var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Apprentice, LowMidRiskCountry);
+            var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
 
-            CheckResult(info, AccountTier.Apprentice, null,
+            CheckResult(info, AccountTier.Beginner, null,
                 AccountTier.ProIndividual, KycStatus.Pending.ToString());
         }
 
@@ -148,9 +148,9 @@ namespace Lykke.Service.Tier.Tests
             };
 
             InitTest(requests);
-            var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Apprentice, LowMidRiskCountry);
+            var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
 
-            CheckResult(info, AccountTier.Apprentice, AccountTier.Advanced,
+            CheckResult(info, AccountTier.Beginner, AccountTier.Advanced,
                 AccountTier.Advanced, KycStatus.Rejected.ToString());
         }
 
@@ -159,18 +159,11 @@ namespace Lykke.Service.Tier.Tests
             _tierUpgradeService.Setup(x => x.GetByClientAsync(It.IsAny<string>())).ReturnsAsync(requests ?? new List<ITierUpgradeRequest>());
             _settingsService.Setup(x => x.IsHighRiskCountry(HighRiskCountry)).Returns(true);
             _settingsService.Setup(x => x.IsHighRiskCountry(LowMidRiskCountry)).Returns(false);
-            _limitsService.Setup(x => x.GetClientLimitSettingsAsync(It.IsAny<string>(), AccountTier.Apprentice, LowMidRiskCountry))
-                .ReturnsAsync(new LimitSettings
-                {
-                    Tier = AccountTier.Apprentice,
-                    Documents = new List<DocumentType>{ DocumentType.PoI, DocumentType.Selfie },
-                    MaxLimit = 500
-                });
 
             _limitsService.Setup(x => x.GetClientLimitSettingsAsync(It.IsAny<string>(), AccountTier.Advanced, LowMidRiskCountry))
                 .ReturnsAsync(new LimitSettings
                 {
-                    Tier = AccountTier.Apprentice,
+                    Tier = AccountTier.Advanced,
                     Documents = new List<DocumentType>{ DocumentType.PoA },
                     MaxLimit = 15000
                 });

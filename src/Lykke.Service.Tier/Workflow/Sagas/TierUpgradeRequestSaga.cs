@@ -80,8 +80,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                 switch (evt.NewStatus)
                 {
                     case KycStatus.Ok:
-                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier,
-                            personalData.CountryFromPOA);
+                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
 
                         if (tierInfo.CurrentTier.MaxLimit == 0)
                             return;
