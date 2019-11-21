@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Lykke.Service.Tier.Client.Models.Responses;
 using Refit;
 
@@ -7,6 +8,7 @@ namespace Lykke.Service.Tier.Client.Api
     /// <summary>
     /// Tiers API interface
     /// </summary>
+    [PublicAPI]
     public interface ITiersApi
     {
         /// <summary>

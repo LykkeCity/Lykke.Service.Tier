@@ -9,6 +9,7 @@ using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Contract.Models;
 using Lykke.Service.Tier.Client.Api;
 using Lykke.Service.Tier.Client.Models.Responses;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -55,7 +56,8 @@ namespace Lykke.Service.Tier.Controllers
             if (pd == null)
                 throw new ValidationApiException(HttpStatusCode.NotFound, "Client not found");
 
-            var tierInfo = await _tiersService.GetClientTierInfoAsync(client.Id, client.Tier, pd.CountryFromPOA);
+            //TODO: change when update client account
+            var tierInfo = await _tiersService.GetClientTierInfoAsync(client.Id, _mapper.Map<AccountTier>(client.Tier), pd.CountryFromPOA);
 
             return _mapper.Map<TierInfoResponse>(tierInfo);
         }

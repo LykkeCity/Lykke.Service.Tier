@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
@@ -14,6 +15,7 @@ using Lykke.Service.PushNotifications.Contract;
 using Lykke.Service.PushNotifications.Contract.Commands;
 using Lykke.Service.PushNotifications.Contract.Enums;
 using Lykke.Service.TemplateFormatter.Client;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Services;
 using Lykke.Service.Tier.Domain.Settings;
 
@@ -28,6 +30,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ITemplateFormatter _templateFormatter;
         private readonly IKycStatusService _kycStatusService;
         private readonly ITierUpgradeService _tierUpgradeService;
+        private readonly IMapper _mapper;
 
         public ClientDepositsSaga(
             IClientAccountClient clientAccountClient,
@@ -36,7 +39,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             ISettingsService settingsService,
             ITemplateFormatter templateFormatter,
             IKycStatusService kycStatusService,
-            ITierUpgradeService tierUpgradeService
+            ITierUpgradeService tierUpgradeService,
+            IMapper mapper
             )
         {
             _clientAccountClient = clientAccountClient;
@@ -46,6 +50,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _templateFormatter = templateFormatter;
             _kycStatusService = kycStatusService;
             _tierUpgradeService = tierUpgradeService;
+            _mapper = mapper;
         }
 
         public async Task Handle(ClientDepositEvent evt, ICommandSender commandSender)
@@ -63,12 +68,14 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
             await _limitsService.SaveDepositOperationAsync(evt);
 
-            LimitSettings currentLimitSettings = await _limitsService.GetClientLimitSettingsAsync(evt.ClientId, clientAccount.Tier, pd.CountryFromPOA);
+            //TODO: change when update client account
+            LimitSettings currentLimitSettings = await _limitsService.GetClientLimitSettingsAsync(evt.ClientId, _mapper.Map<AccountTier>(clientAccount.Tier), pd.CountryFromPOA);
 
             if (currentLimitSettings?.MaxLimit == null)
                 return;
 
-            double checkAmount = await _limitsService.GetClientDepositAmountAsync(evt.ClientId, clientAccount.Tier);
+            //TODO: change when update client account
+            double checkAmount = await _limitsService.GetClientDepositAmountAsync(evt.ClientId, _mapper.Map<AccountTier>(clientAccount.Tier));
 
             if (Math.Abs(checkAmount - currentLimitSettings.MaxLimit.Value) < 0.01)
             {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using JetBrains.Annotations;
-using Lykke.Service.Tier.Domain;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Settings;
 
 namespace Lykke.Service.Tier.Settings

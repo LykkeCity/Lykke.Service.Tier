@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AutoMapper;
 using Lykke.Cqrs;
 using Lykke.Messages.Email.MessageData;
 using Lykke.Service.ClientAccount.Client;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.EmailSender;
 using Lykke.Service.Kyc.Abstractions.Domain.Documents;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
@@ -15,6 +15,7 @@ using Lykke.Service.PushNotifications.Contract;
 using Lykke.Service.PushNotifications.Contract.Commands;
 using Lykke.Service.PushNotifications.Contract.Enums;
 using Lykke.Service.TemplateFormatter.Client;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Events;
 using Lykke.Service.Tier.Domain.Services;
 using IEmailSender = Lykke.Messages.Email.IEmailSender;
@@ -30,6 +31,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ITiersService _tiersService;
         private readonly IEmailSender _emailSender;
         private readonly ITemplateFormatter _templateFormatter;
+        private readonly IMapper _mapper;
 
         public TierUpgradeRequestSaga(
             ITierUpgradeService tierUpgradeService,
@@ -38,7 +40,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             IKycDocumentsServiceV2 kycDocumentsService,
             ITiersService tiersService,
             IEmailSender emailSender,
-            ITemplateFormatter templateFormatter
+            ITemplateFormatter templateFormatter,
+            IMapper mapper
         )
         {
             _tierUpgradeService = tierUpgradeService;
@@ -48,6 +51,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _tiersService = tiersService;
             _emailSender = emailSender;
             _templateFormatter = templateFormatter;
+            _mapper = mapper;
         }
 
         public Task Handle(TierUpgradeRequestChangedEvent evt, ICommandSender commandSender)
@@ -80,7 +84,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                 switch (evt.NewStatus)
                 {
                     case KycStatus.Ok:
-                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier,
+                        //TODO: change when update client account
+                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, _mapper.Map<AccountTier>(clientAcc.Tier),
                             personalData.CountryFromPOA);
 
                         if (tierInfo.CurrentTier.MaxLimit == 0)

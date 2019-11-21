@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Common.Log;
 using Lykke.Common.Log;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Limitations.Client.Events;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Deposits;
 using Lykke.Service.Tier.Domain.Repositories;
@@ -97,9 +97,7 @@ namespace Lykke.Service.Tier.DomainServices
             var monthAgo = DateTime.UtcNow.AddMonths(-1);
             var deposits = await _clientDepositsRepository.GetDepositsAsync(clientId);
 
-            return tier == AccountTier.Apprentice
-                ? deposits.Sum(x => x.BaseVolume)
-                : deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
+            return deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
         }
 
         public Task AddLimitAsync(string clientId, double limit, string asset)

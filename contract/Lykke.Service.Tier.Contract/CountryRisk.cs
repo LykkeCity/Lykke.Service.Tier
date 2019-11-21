@@ -1,4 +1,4 @@
-namespace Lykke.Service.Tier.Domain
+namespace Lykke.Service.Tier.Contract
 {
     public enum CountryRisk
     {

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using JetBrains.Annotations;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Tier.Contract;
 using Lykke.SettingsReader.Attributes;
 
