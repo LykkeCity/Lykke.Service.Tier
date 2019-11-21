@@ -5,6 +5,7 @@ namespace Lykke.Service.Tier.Contract
         PoI,
         Selfie,
         PoA,
-        PoF
+        PoF,
+        Questions
     }
 }

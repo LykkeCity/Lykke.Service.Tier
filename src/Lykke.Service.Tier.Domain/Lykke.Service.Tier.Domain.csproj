@@ -5,8 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Lykke.Common" Version="7.4.0" />
-    <PackageReference Include="Lykke.Service.ClientAccount.Client" Version="4.3.1" />
-    <PackageReference Include="Lykke.Service.Kyc.Client" Version="1.1.1" />
+    <PackageReference Include="Lykke.Service.ClientAccount.Client" Version="4.5.0" />
+    <PackageReference Include="Lykke.Service.Kyc.Client" Version="1.2.0" />
     <PackageReference Include="Lykke.Service.Limitations.Client" Version="1.6.0" />
     <PackageReference Include="Lykke.SettingsReader" Version="5.2.0" />
   </ItemGroup>

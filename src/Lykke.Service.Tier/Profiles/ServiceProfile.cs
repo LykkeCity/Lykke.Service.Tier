@@ -1,10 +1,9 @@
 using AutoMapper;
 using JetBrains.Annotations;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Limitations.Client.Events;
 using Lykke.Service.Tier.AzureRepositories;
-using Lykke.Service.Tier.Client.Models;
 using Lykke.Service.Tier.Client.Models.Responses;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Deposits;
 

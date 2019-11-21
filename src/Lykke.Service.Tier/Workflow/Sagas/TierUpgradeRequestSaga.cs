@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Lykke.Cqrs;
 using Lykke.Messages.Email.MessageData;
 using Lykke.Service.ClientAccount.Client;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.EmailSender;
 using Lykke.Service.Kyc.Abstractions.Domain.Documents;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
@@ -15,6 +14,7 @@ using Lykke.Service.PushNotifications.Contract;
 using Lykke.Service.PushNotifications.Contract.Commands;
 using Lykke.Service.PushNotifications.Contract.Enums;
 using Lykke.Service.TemplateFormatter.Client;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Events;
 using Lykke.Service.Tier.Domain.Services;
 using IEmailSender = Lykke.Messages.Email.IEmailSender;
@@ -80,8 +80,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                 switch (evt.NewStatus)
                 {
                     case KycStatus.Ok:
-                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier,
-                            personalData.CountryFromPOA);
+                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
 
                         if (tierInfo.CurrentTier.MaxLimit == 0)
                             return;

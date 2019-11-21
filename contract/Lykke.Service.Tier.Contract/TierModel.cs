@@ -1,8 +1,7 @@
-namespace Lykke.Service.Tier.Client.Models
+namespace Lykke.Service.Tier.Contract
 {
     public enum TierModel
     {
-        Apprentice,
         Advanced,
         ProIndividual
     }

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Common;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Kyc.Abstractions.Services;
@@ -127,7 +126,6 @@ namespace Lykke.Service.Tier.DomainServices
         {
             var result = new Dictionary<string, int>
             {
-                { AccountTier.Apprentice.ToString(), 0 },
                 { AccountTier.Advanced.ToString(), 0 },
                 { AccountTier.ProIndividual.ToString(), 0 }
             };
