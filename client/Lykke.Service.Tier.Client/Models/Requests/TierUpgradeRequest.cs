@@ -1,3 +1,4 @@
+using Lykke.Service.Tier.Contract;
 
 namespace Lykke.Service.Tier.Client.Models.Requests
 {

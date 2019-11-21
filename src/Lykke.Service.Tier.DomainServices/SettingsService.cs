@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Lykke.Service.ClientAccount.Client.Models;
-using Lykke.Service.Tier.Domain;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Services;
 using Lykke.Service.Tier.Domain.Settings;
 

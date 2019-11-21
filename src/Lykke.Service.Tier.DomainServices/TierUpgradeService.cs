@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Common;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Kyc.Abstractions.Services;
@@ -16,6 +15,7 @@ using Lykke.Service.Tier.Domain.Events;
 using Lykke.Service.Tier.Domain.Repositories;
 using Lykke.Service.Tier.Domain.Services;
 using StackExchange.Redis;
+using AccountTier = Lykke.Service.Tier.Contract.AccountTier;
 
 namespace Lykke.Service.Tier.DomainServices
 {
@@ -72,7 +72,8 @@ namespace Lykke.Service.Tier.DomainServices
             switch (status)
             {
                 case KycStatus.Ok:
-                    await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
+                    //TODO: change
+                    //await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
                     break;
                 case KycStatus.Rejected:
                 case KycStatus.RestrictedArea:
@@ -127,7 +128,6 @@ namespace Lykke.Service.Tier.DomainServices
         {
             var result = new Dictionary<string, int>
             {
-                { AccountTier.Apprentice.ToString(), 0 },
                 { AccountTier.Advanced.ToString(), 0 },
                 { AccountTier.ProIndividual.ToString(), 0 }
             };
