@@ -127,7 +127,6 @@ namespace Lykke.Service.Tier.DomainServices
         {
             var result = new Dictionary<string, int>
             {
-                { AccountTier.Apprentice.ToString(), 0 },
                 { AccountTier.Advanced.ToString(), 0 },
                 { AccountTier.ProIndividual.ToString(), 0 }
             };

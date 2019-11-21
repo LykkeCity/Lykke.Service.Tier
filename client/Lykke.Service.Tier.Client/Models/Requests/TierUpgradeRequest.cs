@@ -1,4 +1,3 @@
-
 namespace Lykke.Service.Tier.Client.Models.Requests
 {
     public class TierUpgradeRequest

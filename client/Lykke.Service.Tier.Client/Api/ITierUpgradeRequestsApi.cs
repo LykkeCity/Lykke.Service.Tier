@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Lykke.Service.Tier.Client.Models;
 using Lykke.Service.Tier.Client.Models.Requests;
 using Lykke.Service.Tier.Client.Models.Responses;
@@ -7,6 +8,10 @@ using Refit;
 
 namespace Lykke.Service.Tier.Client.Api
 {
+    /// <summary>
+    /// Tier upgrade requests API interface
+    /// </summary>
+    [PublicAPI]
     public interface ITierUpgradeRequestsApi
     {
         /// <summary>
