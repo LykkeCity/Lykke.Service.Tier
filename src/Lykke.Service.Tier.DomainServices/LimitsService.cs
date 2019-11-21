@@ -97,9 +97,7 @@ namespace Lykke.Service.Tier.DomainServices
             var monthAgo = DateTime.UtcNow.AddMonths(-1);
             var deposits = await _clientDepositsRepository.GetDepositsAsync(clientId);
 
-            return tier == AccountTier.Apprentice
-                ? deposits.Sum(x => x.BaseVolume)
-                : deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
+            return deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
         }
 
         public Task AddLimitAsync(string clientId, double limit, string asset)
