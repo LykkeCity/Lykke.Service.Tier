@@ -30,7 +30,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ITemplateFormatter _templateFormatter;
         private readonly IKycStatusService _kycStatusService;
         private readonly ITierUpgradeService _tierUpgradeService;
-        private readonly IMapper _mapper;
 
         public ClientDepositsSaga(
             IClientAccountClient clientAccountClient,
@@ -39,8 +38,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             ISettingsService settingsService,
             ITemplateFormatter templateFormatter,
             IKycStatusService kycStatusService,
-            ITierUpgradeService tierUpgradeService,
-            IMapper mapper
+            ITierUpgradeService tierUpgradeService
             )
         {
             _clientAccountClient = clientAccountClient;
@@ -50,7 +48,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _templateFormatter = templateFormatter;
             _kycStatusService = kycStatusService;
             _tierUpgradeService = tierUpgradeService;
-            _mapper = mapper;
         }
 
         public async Task Handle(ClientDepositEvent evt, ICommandSender commandSender)
@@ -68,14 +65,12 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
             await _limitsService.SaveDepositOperationAsync(evt);
 
-            //TODO: change when update client account
-            LimitSettings currentLimitSettings = await _limitsService.GetClientLimitSettingsAsync(evt.ClientId, _mapper.Map<AccountTier>(clientAccount.Tier), pd.CountryFromPOA);
+            LimitSettings currentLimitSettings = await _limitsService.GetClientLimitSettingsAsync(evt.ClientId, clientAccount.Tier, pd.CountryFromPOA);
 
             if (currentLimitSettings?.MaxLimit == null)
                 return;
 
-            //TODO: change when update client account
-            double checkAmount = await _limitsService.GetClientDepositAmountAsync(evt.ClientId, _mapper.Map<AccountTier>(clientAccount.Tier));
+            double checkAmount = await _limitsService.GetClientDepositAmountAsync(evt.ClientId, clientAccount.Tier);
 
             if (Math.Abs(checkAmount - currentLimitSettings.MaxLimit.Value) < 0.01)
             {

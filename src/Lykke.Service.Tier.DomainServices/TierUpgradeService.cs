@@ -15,7 +15,6 @@ using Lykke.Service.Tier.Domain.Events;
 using Lykke.Service.Tier.Domain.Repositories;
 using Lykke.Service.Tier.Domain.Services;
 using StackExchange.Redis;
-using AccountTier = Lykke.Service.Tier.Contract.AccountTier;
 
 namespace Lykke.Service.Tier.DomainServices
 {
@@ -72,8 +71,7 @@ namespace Lykke.Service.Tier.DomainServices
             switch (status)
             {
                 case KycStatus.Ok:
-                    //TODO: change
-                    //await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
+                    await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
                     break;
                 case KycStatus.Rejected:
                 case KycStatus.RestrictedArea:

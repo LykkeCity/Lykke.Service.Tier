@@ -56,8 +56,7 @@ namespace Lykke.Service.Tier.Controllers
             if (pd == null)
                 throw new ValidationApiException(HttpStatusCode.NotFound, "Client not found");
 
-            //TODO: change when update client account
-            var tierInfo = await _tiersService.GetClientTierInfoAsync(client.Id, _mapper.Map<AccountTier>(client.Tier), pd.CountryFromPOA);
+            var tierInfo = await _tiersService.GetClientTierInfoAsync(client.Id, client.Tier, pd.CountryFromPOA);
 
             return _mapper.Map<TierInfoResponse>(tierInfo);
         }

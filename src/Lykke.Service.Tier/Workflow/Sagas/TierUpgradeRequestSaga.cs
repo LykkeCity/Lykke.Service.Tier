@@ -84,9 +84,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                 switch (evt.NewStatus)
                 {
                     case KycStatus.Ok:
-                        //TODO: change when update client account
-                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, _mapper.Map<AccountTier>(clientAcc.Tier),
-                            personalData.CountryFromPOA);
+                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
 
                         if (tierInfo.CurrentTier.MaxLimit == 0)
                             return;
