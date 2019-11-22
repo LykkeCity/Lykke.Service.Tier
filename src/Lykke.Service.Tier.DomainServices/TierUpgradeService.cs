@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Common;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Kyc.Abstractions.Services;

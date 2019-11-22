@@ -1,7 +1,7 @@
 using System;
 using Lykke.AzureStorage.Tables;
+using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
-using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
 
 namespace Lykke.Service.Tier.AzureRepositories

@@ -1,4 +1,4 @@
-using Lykke.Service.Tier.Contract;
+using Lykke.Service.ClientAccount.Client.Models;
 
 namespace Lykke.Service.Tier.Domain
 {

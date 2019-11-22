@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Lykke.Service.Tier.Client.Models;
 using Lykke.Service.Tier.Client.Models.Requests;
 using Lykke.Service.Tier.Client.Models.Responses;
-using Lykke.Service.Tier.Contract;
 using Refit;
 
 namespace Lykke.Service.Tier.Client.Api

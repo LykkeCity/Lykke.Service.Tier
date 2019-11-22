@@ -1,6 +1,8 @@
 using System.Net;
 using System.Threading.Tasks;
+using AutoMapper;
 using Lykke.Service.Tier.Client.Api;
+using Lykke.Service.Tier.Client.Models;
 using Lykke.Service.Tier.Client.Models.Responses;
 using Lykke.Service.Tier.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +14,15 @@ namespace Lykke.Service.Tier.Controllers
     public class CountriesController : Controller, ICountriesApi
     {
         private readonly ISettingsService _settingsService;
+        private readonly IMapper _mapper;
 
         public CountriesController(
-            ISettingsService settingsService
+            ISettingsService settingsService,
+            IMapper mapper
             )
         {
             _settingsService = settingsService;
+            _mapper = mapper;
         }
 
         /// <inheritdoc cref="ICountriesApi"/>
@@ -37,7 +42,7 @@ namespace Lykke.Service.Tier.Controllers
         {
             var result = new CountryRiskResponse
             {
-                Risk = _settingsService.GetCountryRisk(countryCode)
+                Risk = _mapper.Map<RiskModel>(_settingsService.GetCountryRisk(countryCode))
             };
 
             return Task.FromResult(result);

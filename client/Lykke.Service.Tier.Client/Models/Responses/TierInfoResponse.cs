@@ -1,5 +1,5 @@
 using System;
-using Lykke.Service.Tier.Contract;
+using Lykke.Service.ClientAccount.Client.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
