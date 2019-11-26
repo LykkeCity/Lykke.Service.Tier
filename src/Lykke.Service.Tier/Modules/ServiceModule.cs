@@ -63,6 +63,10 @@ namespace Lykke.Service.Tier.Modules
             builder.RegisterType<TiersService>()
                 .As<ITiersService>()
                 .SingleInstance();
+
+            builder.RegisterType<QuestionnaireService>()
+                .As<IQuestionnaireService>()
+                .SingleInstance();
         }
     }
 }

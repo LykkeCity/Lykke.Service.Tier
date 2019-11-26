@@ -48,6 +48,24 @@ namespace Lykke.Service.Tier.Modules
                     _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
                     "ClientDeposits", ctx.Resolve<ILogFactory>()))
             ).As<IClientDepositsRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new QuestionsRepository(AzureTableStorage<QuestionEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "Questions", ctx.Resolve<ILogFactory>()))
+            ).As<IQuestionsRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new AnswersRepository(AzureTableStorage<AnswerEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "Answers", ctx.Resolve<ILogFactory>()))
+            ).As<IAnswersRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new UserChoicesRepository(AzureTableStorage<UserChoiceEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "UserChoices", ctx.Resolve<ILogFactory>()))
+            ).As<IUserChoicesRepository>().SingleInstance();
         }
     }
 }
