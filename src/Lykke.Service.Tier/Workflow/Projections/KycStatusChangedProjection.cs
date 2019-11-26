@@ -23,18 +23,44 @@ namespace Lykke.Service.Tier.Workflow.Projections
             Enum.TryParse(evt.NewStatus, out KycStatus status);
 
             var upgradeRequests = await _tierUpgradeService.GetByClientAsync(evt.ClientId);
+            var request = upgradeRequests
+                .OrderBy(x => x.Tier)
+                .FirstOrDefault(x => x.KycStatus != KycStatus.Ok);
 
-            if (status == KycStatus.Rejected || status == KycStatus.RestrictedArea)
+            var requestStatus = GetTierStatus(status);
+
+            if (request != null && request.KycStatus != requestStatus)
             {
-                var request = upgradeRequests
-                    .OrderBy(x => x.Tier)
-                    .FirstOrDefault(x => x.KycStatus != KycStatus.Ok);
+                await _tierUpgradeService.AddAsync(evt.ClientId, request.Tier, requestStatus,
+                    nameof(KycStatusChangedProjection));
+            }
+        }
 
-                if (request != null && request.KycStatus != status)
-                {
-                    await _tierUpgradeService.AddAsync(evt.ClientId, request.Tier, status,
-                        nameof(KycStatusChangedProjection));
-                }
+        private KycStatus GetTierStatus(KycStatus status)
+        {
+            switch (status)
+            {
+                case KycStatus.Pending:
+                case KycStatus.ReviewDone:
+                case KycStatus.JumioInProgress:
+                case KycStatus.JumioOk:
+                case KycStatus.JumioFailed:
+                    return KycStatus.Pending;
+
+                case KycStatus.NeedToFillData:
+                    return KycStatus.NeedToFillData;
+
+                case KycStatus.Ok:
+                    return KycStatus.Ok;
+
+                case KycStatus.Rejected:
+                    return KycStatus.Rejected;
+                case KycStatus.RestrictedArea:
+                    return KycStatus.RestrictedArea;
+                case KycStatus.Complicated:
+                    return status;
+                default:
+                    return status;
             }
         }
     }
