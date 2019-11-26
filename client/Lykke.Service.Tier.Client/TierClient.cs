@@ -12,6 +12,7 @@ namespace Lykke.Service.Tier.Client
         public ITierUpgradeRequestsApi UpgradeRequests { get; private set; }
         public ITiersApi Tiers { get; set; }
         public ILimitsApi Limits { get; set; }
+        public IQuestionnaireApi Questionnaire { get; set; }
 
         public TierClient(IHttpClientGenerator httpClientGenerator)
         {
@@ -19,6 +20,7 @@ namespace Lykke.Service.Tier.Client
             UpgradeRequests = httpClientGenerator.Generate<ITierUpgradeRequestsApi>();
             Tiers = httpClientGenerator.Generate<ITiersApi>();
             Limits = httpClientGenerator.Generate<ILimitsApi>();
+            Questionnaire = httpClientGenerator.Generate<IQuestionnaireApi>();
         }
     }
 }
