@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lykke.Service.Tier.Domain.Questionnaire;
 
@@ -16,5 +17,8 @@ namespace Lykke.Service.Tier.Domain.Services
         Task DeleteAnswerAsync(string questionId, string id);
         Task SaveChoisesAsync(string clientId, Choice[] choices);
         Task<Question[]> GetQuestionnaireAsync(string clientId);
+        Task SaveQuestionnaireRank(string clientId, double rank, string changer, string comment);
+        Task<IQuestionRank> GetQuestionnaireRankAsync(string clientId);
+        Task<IReadOnlyList<IQuestionRank>> GetQuestionnaireRanksAsync(string clientId);
     }
 }

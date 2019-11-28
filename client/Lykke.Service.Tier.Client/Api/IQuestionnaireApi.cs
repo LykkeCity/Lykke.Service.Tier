@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Lykke.Service.Tier.Client.Models.Requests;
@@ -83,6 +84,28 @@ namespace Lykke.Service.Tier.Client.Api
         /// <returns></returns>
         [Delete("/api/questionnaire/question/{questionId}/{answerId}")]
         Task DeleteAnswerAsync(string questionId, string answerId);
+
+        /// <summary>
+        /// Saves questionnaire rank
+        /// </summary>
+        /// <param name="model">rank model</param>
+        /// <returns></returns>
+        [Post("/api/questionnaire/rank")]
+        Task SaveQuestionnaireRankAsync([Body]QuestionnaireRankRequest model);
+
+        /// <summary>
+        /// Gets client questionnaire ranks
+        /// </summary>
+        /// <returns></returns>
+        [Get("/api/questionnaire/rank/{clientId}")]
+        Task<QuestionnaireRankResponse> GetQuestionnaireRankAsync(string clientId);
+
+        /// <summary>
+        /// Gets all client questionnaire ranks
+        /// </summary>
+        /// <returns></returns>
+        [Get("/api/questionnaire/rank/{clientId}/all")]
+        Task<IReadOnlyList<QuestionnaireRankResponse>> GetQuestionnaireRanksAsync(string clientId);
     }
 }
 

@@ -31,8 +31,11 @@ namespace Lykke.Service.Tier.Profiles
                 .ForMember(d => d.Answers, o => o.Ignore());
             CreateMap<QuestionUpdateRequest, Question>(MemberList.Destination)
                 .ForMember(d => d.Answers, o => o.Ignore());
-            CreateMap<AnswerUpdateRequest, Answer>(MemberList.Destination);
+            CreateMap<AnswerUpdateRequest, Answer>(MemberList.Destination)
+                .ForMember(d => d.Weight, o => o.Ignore());
             CreateMap<ChoiceModel, Choice>(MemberList.Destination);
+            CreateMap<IQuestionRank, QuestionnaireRankResponse>(MemberList.Destination)
+                .ForMember(d => d.Timestamp, o => o.MapFrom(x => x.CreatedAt));
         }
     }
 }
