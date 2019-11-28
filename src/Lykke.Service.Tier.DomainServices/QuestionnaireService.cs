@@ -139,6 +139,7 @@ namespace Lykke.Service.Tier.DomainServices
                 {
                     Id = question.Id,
                     Text = question.Text,
+                    Order = question.Order,
                     Answers = answers.ToArray()
                 });
             }
