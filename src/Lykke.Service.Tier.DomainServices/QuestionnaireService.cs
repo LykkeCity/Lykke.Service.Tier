@@ -14,18 +14,21 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly IQuestionsRepository _questionsRepository;
         private readonly IAnswersRepository _answersRepository;
         private readonly IUserChoicesRepository _userChoicesRepository;
+        private readonly IQuestionsRankRepository _questionsRankRepository;
         private readonly IMapper _mapper;
 
         public QuestionnaireService(
             IQuestionsRepository questionsRepository,
             IAnswersRepository answersRepository,
             IUserChoicesRepository userChoicesRepository,
+            IQuestionsRankRepository questionsRankRepository,
             IMapper mapper
             )
         {
             _questionsRepository = questionsRepository;
             _answersRepository = answersRepository;
             _userChoicesRepository = userChoicesRepository;
+            _questionsRankRepository = questionsRankRepository;
             _mapper = mapper;
         }
 
@@ -92,9 +95,17 @@ namespace Lykke.Service.Tier.DomainServices
             return _answersRepository.DeleteAsync(questionId, id);
         }
 
-        public Task SaveChoisesAsync(string clientId, Choice[] choices)
+        public async Task SaveChoisesAsync(string clientId, Choice[] choices)
         {
-            return _userChoicesRepository.AddAsync(clientId, choices);
+            await _userChoicesRepository.AddAsync(clientId, choices);
+
+            var ansserIds = GetAnswerIds(choices);
+            var answers = await _answersRepository.GetAllAsync(ansserIds);
+
+            //TODO: calculate rank
+            double rank = CalculateRank(answers);
+
+            await SaveQuestionnaireRank(clientId, rank, nameof(QuestionnaireService), "Init calculated rank");
         }
 
         public async Task<Question[]> GetQuestionnaireAsync(string clientId)
@@ -102,12 +113,7 @@ namespace Lykke.Service.Tier.DomainServices
             var choices = await _userChoicesRepository.GetClientChoicesAsync(clientId);
             var questionIds = choices.Select(x => x.QuestionId).ToArray();
 
-            var ids = new List<Tuple<string, string>>();
-
-            foreach (var choice in choices)
-            {
-                ids.AddRange(choice.AnswerIds.Select(answerId => new Tuple<string, string>(choice.QuestionId, answerId)));
-            }
+            var ids = GetAnswerIds(choices);
 
             var questionsTask = _questionsRepository.GetAllAsync(questionIds);
             var answersTask = _answersRepository.GetAllAsync(ids);
@@ -138,6 +144,38 @@ namespace Lykke.Service.Tier.DomainServices
             }
 
             return result.OrderBy(x => x.Order).ToArray();
+        }
+
+        public Task SaveQuestionnaireRank(string clientId, double rank, string changer, string comment)
+        {
+            return _questionsRankRepository.AddAsync(clientId, rank, changer, comment);
+        }
+
+        public async Task<IQuestionRank> GetQuestionnaireRankAsync(string clientId)
+        {
+            return await _questionsRankRepository.GetAsync(clientId);
+        }
+
+        public async Task<IReadOnlyList<IQuestionRank>> GetQuestionnaireRanksAsync(string clientId)
+        {
+            return await _questionsRankRepository.GetAllAsync(clientId);
+        }
+
+        private static List<Tuple<string, string>> GetAnswerIds(IChoice[] choices)
+        {
+            var ids = new List<Tuple<string, string>>();
+
+            foreach (var choice in choices)
+            {
+                ids.AddRange(choice.AnswerIds.Select(answerId => new Tuple<string, string>(choice.QuestionId, answerId)));
+            }
+
+            return ids;
+        }
+
+        private double CalculateRank(IAnswer[] answers)
+        {
+            return answers.Sum(x => x.Weight);
         }
     }
 }

@@ -13,6 +13,7 @@ namespace Lykke.Service.Tier.AzureRepositories
         public string QuestionId => PartitionKey;
         public string Text { get; set; }
         public int Order { get; set; }
+        public double Weight { get; set; }
 
         public static string GeneratePk(string questionId) => questionId;
         public static string GenerateRk(string id = null) => string.IsNullOrEmpty(id) ? Guid.NewGuid().ToString() : id;
@@ -24,7 +25,8 @@ namespace Lykke.Service.Tier.AzureRepositories
                 PartitionKey = GeneratePk(answer.QuestionId),
                 RowKey = GenerateRk(answer.Id),
                 Text = answer.Text,
-                Order = answer.Order
+                Order = answer.Order,
+                Weight = answer.Weight
             };
         }
     }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -48,9 +49,16 @@ namespace Lykke.Service.Tier.Controllers
         [ProducesResponseType(typeof(QuestionnaireResponse), (int)HttpStatusCode.OK)]
         public async Task<FilledQuestionnaireResponse> GetAnsweredQuestionnaireAsync(string clientId)
         {
-            var questions = await _questionnaireService.GetQuestionnaireAsync(clientId);
+            var questionsTask = _questionnaireService.GetQuestionnaireAsync(clientId);
+            var rankTask = _questionnaireService.GetQuestionnaireRankAsync(clientId);
 
-            var result = new FilledQuestionnaireResponse {Questionnaire = _mapper.Map<AnsweredQuestionModel[]>(questions)};
+            await Task.WhenAll(questionsTask, rankTask);
+
+            var result = new FilledQuestionnaireResponse
+            {
+                Questionnaire = _mapper.Map<AnsweredQuestionModel[]>(questionsTask.Result),
+                Rank = rankTask.Result?.Rank ?? 0
+            };
 
             return result;
         }
@@ -142,6 +150,35 @@ namespace Lykke.Service.Tier.Controllers
             {
                 await _questionnaireService.DeleteAnswerAsync(questionId, answerId);
             }
+        }
+
+        /// <inheritdoc cref="IQuestionnaireApi"/>
+        [HttpPost("rank")]
+        [SwaggerOperation("SaveQuestionnaireRank")]
+        [ProducesResponseType(typeof(void), (int)HttpStatusCode.OK)]
+        public Task SaveQuestionnaireRankAsync([FromBody]QuestionnaireRankRequest model)
+        {
+            return _questionnaireService.SaveQuestionnaireRank(model.ClientId, model.Rank, model.Changer, model.Comment);
+        }
+
+        /// <inheritdoc cref="IQuestionnaireApi"/>
+        [HttpGet("rank/{clientId}")]
+        [SwaggerOperation("GetQuestionnaireRank")]
+        [ProducesResponseType(typeof(void), (int)HttpStatusCode.OK)]
+        public async Task<QuestionnaireRankResponse> GetQuestionnaireRankAsync(string clientId)
+        {
+            var rank = await _questionnaireService.GetQuestionnaireRankAsync(clientId);
+            return _mapper.Map<QuestionnaireRankResponse>(rank);
+        }
+
+        /// <inheritdoc cref="IQuestionnaireApi"/>
+        [HttpGet("rank/{clientId}/all")]
+        [SwaggerOperation("GetQuestionnaireRanks")]
+        [ProducesResponseType(typeof(void), (int)HttpStatusCode.OK)]
+        public async Task<IReadOnlyList<QuestionnaireRankResponse>> GetQuestionnaireRanksAsync(string clientId)
+        {
+            var ranks = await _questionnaireService.GetQuestionnaireRanksAsync(clientId);
+            return _mapper.Map<IReadOnlyList<QuestionnaireRankResponse>>(ranks);
         }
     }
 }
