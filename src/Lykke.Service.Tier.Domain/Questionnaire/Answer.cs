@@ -6,5 +6,6 @@ namespace Lykke.Service.Tier.Domain.Questionnaire
         public string QuestionId { get; set; }
         public string Text { get; set; }
         public int Order { get; set; }
+        public double Weight { get; set; }
     }
 }
