@@ -46,7 +46,7 @@ namespace Lykke.Service.Tier.Controllers
         /// <inheritdoc cref="IQuestionnaireApi"/>
         [HttpGet("answered/{clientId}")]
         [SwaggerOperation("GetQuestionnaire")]
-        [ProducesResponseType(typeof(QuestionnaireResponse), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(FilledQuestionnaireResponse), (int)HttpStatusCode.OK)]
         public async Task<FilledQuestionnaireResponse> GetAnsweredQuestionnaireAsync(string clientId)
         {
             var questionsTask = _questionnaireService.GetQuestionnaireAsync(clientId);
