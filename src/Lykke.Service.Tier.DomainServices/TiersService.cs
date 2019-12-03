@@ -14,29 +14,38 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly ILimitsService _limitsService;
         private readonly ISettingsService _settingsService;
         private readonly ITierUpgradeService _tierUpgradeService;
+        private readonly IQuestionnaireService _questionnaireService;
 
         public TiersService(
             ILimitsService limitsService,
             ISettingsService settingsService,
-            ITierUpgradeService tierUpgradeService
+            ITierUpgradeService tierUpgradeService,
+            IQuestionnaireService questionnaireService
             )
         {
             _limitsService = limitsService;
             _settingsService = settingsService;
             _tierUpgradeService = tierUpgradeService;
+            _questionnaireService = questionnaireService;
         }
 
         public async Task<ClientTierInfo> GetClientTierInfoAsync(string clientId, AccountTier clientTier, string country)
         {
-            CurrentTier currentTier = await GetCurrentTierAync(clientId, clientTier, country);
-            TierUpgradeRequest upgradeRequet = await GetUpgradeRequestAsync(clientId);
-            NextTier nextTier = await GetNextTierAsync(clientId, clientTier, country, upgradeRequet);
+            var currentTierTask = GetCurrentTierAync(clientId, clientTier, country);
+            var upgradeRequetTask = GetUpgradeRequestAsync(clientId);
+            var questionnaireTask = _questionnaireService.GetQuestionnaireAsync(clientId);
+
+            await Task.WhenAll(currentTierTask, upgradeRequetTask, questionnaireTask);
+
+            NextTier nextTier = await GetNextTierAsync(clientId, clientTier, country, upgradeRequetTask.Result);
+
 
             var result = new ClientTierInfo
             {
-                CurrentTier = currentTier,
+                CurrentTier = currentTierTask.Result,
                 NextTier = nextTier,
-                UpgradeRequest = upgradeRequet
+                UpgradeRequest = upgradeRequetTask.Result,
+                QuestionnaireAnswered = questionnaireTask.Result.Any()
             };
 
             return result;

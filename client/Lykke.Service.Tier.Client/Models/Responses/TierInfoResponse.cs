@@ -10,6 +10,7 @@ namespace Lykke.Service.Tier.Client.Models.Responses
         public CurrentTierInfo CurrentTier { get; set; }
         public TierInfo NextTier { get; set; }
         public UpgradeRequest UpgradeRequest { get; set; }
+        public bool QuestionnaireAnswered { get; set; }
     }
 
     public class UpgradeRequest
