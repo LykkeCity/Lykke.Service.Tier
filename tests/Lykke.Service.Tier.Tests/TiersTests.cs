@@ -18,6 +18,7 @@ namespace Lykke.Service.Tier.Tests
         private readonly Mock<ILimitsService> _limitsService;
         private readonly Mock<ISettingsService> _settingsService;
         private readonly Mock<ITierUpgradeService> _tierUpgradeService;
+        private readonly Mock<IQuestionnaireService> _questionnaireService;
         private readonly TiersService _tierService;
         private const string ClientId = "1";
         private const string HighRiskCountry = "High";
@@ -28,8 +29,9 @@ namespace Lykke.Service.Tier.Tests
             _limitsService = new Mock<ILimitsService>();
             _settingsService = new Mock<ISettingsService>();
             _tierUpgradeService = new Mock<ITierUpgradeService>();
+            _questionnaireService = new Mock<IQuestionnaireService>();
 
-            _tierService = new TiersService(_limitsService.Object, _settingsService.Object, _tierUpgradeService.Object);
+            _tierService = new TiersService(_limitsService.Object, _settingsService.Object, _tierUpgradeService.Object, _questionnaireService.Object);
         }
 
         [Fact]

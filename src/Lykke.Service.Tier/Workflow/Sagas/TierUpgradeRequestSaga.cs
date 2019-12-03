@@ -136,17 +136,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                         emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradeRejectedTemplate", clientAcc.PartnerId,
                             "EN", new { FullName = personalData.FullName, Tier = evt.Tier.ToString(), Year = DateTime.UtcNow.Year });
                         break;
-
-                    case KycStatus.Pending:
-                        //first request to ProIndividual tier
-                        if (evt.OldStatus == null && evt.Tier == AccountTier.ProIndividual)
-                        {
-                            emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradePofInstructionTemplate",
-                                clientAcc.PartnerId,
-                                "EN", new {FullName = personalData.FullName, Year = DateTime.UtcNow.Year});
-                        }
-
-                        break;
                 }
             }
             finally
