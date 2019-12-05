@@ -6,6 +6,7 @@ using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
+using Lykke.Service.Tier.Domain.Settings;
 
 namespace Lykke.Service.Tier.DomainServices
 {
@@ -32,7 +33,7 @@ namespace Lykke.Service.Tier.DomainServices
         public async Task<ClientTierInfo> GetClientTierInfoAsync(string clientId, AccountTier clientTier, string country)
         {
             var currentTierTask = GetCurrentTierAync(clientId, clientTier, country);
-            var upgradeRequetTask = GetUpgradeRequestAsync(clientId);
+            var upgradeRequetTask = GetUpgradeRequestAsync(clientId, country);
             var questionnaireTask = _questionnaireService.GetQuestionnaireAsync(clientId);
 
             await Task.WhenAll(currentTierTask, upgradeRequetTask, questionnaireTask);
@@ -67,7 +68,7 @@ namespace Lykke.Service.Tier.DomainServices
             };
         }
 
-        internal async Task<TierUpgradeRequest> GetUpgradeRequestAsync(string clientId)
+        internal async Task<TierUpgradeRequest> GetUpgradeRequestAsync(string clientId, string country)
         {
             IReadOnlyList<ITierUpgradeRequest> tierUpgradeRequests = await _tierUpgradeService.GetByClientAsync(clientId);
 
@@ -75,20 +76,31 @@ namespace Lykke.Service.Tier.DomainServices
                 .OrderBy(x => x.Tier)
                 .FirstOrDefault(x => x.KycStatus != KycStatus.Ok && x.KycStatus != KycStatus.Pending);
 
+            var lastPendingRequest = tierUpgradeRequests
+                .Where(x => x.KycStatus != KycStatus.Ok)
+                .OrderByDescending(x => x.Tier)
+                .FirstOrDefault();
+
+            var tier = rejectedRequest?.Tier ?? lastPendingRequest?.Tier ?? null;
+
+            double limit = 0;
+
+            if (tier != null)
+            {
+                LimitSettings limitSettings = await _limitsService.GetClientLimitSettingsAsync(clientId, tier.Value, country);
+                limit = limitSettings?.MaxLimit ?? 0;
+            }
+
             if (rejectedRequest != null)
             {
                 return new TierUpgradeRequest
                 {
                     Tier = rejectedRequest.Tier,
                     Status = rejectedRequest.KycStatus.ToString(),
-                    SubmitDate = rejectedRequest.Date
+                    SubmitDate = rejectedRequest.Date,
+                    Limit = limit
                 };
             }
-
-            var lastPendingRequest = tierUpgradeRequests
-                .Where(x => x.KycStatus != KycStatus.Ok)
-                .OrderByDescending(x => x.Tier)
-                .FirstOrDefault();
 
             if (lastPendingRequest != null)
             {
@@ -96,7 +108,8 @@ namespace Lykke.Service.Tier.DomainServices
                 {
                     Tier = lastPendingRequest.Tier,
                     Status = lastPendingRequest.KycStatus.ToString(),
-                    SubmitDate = lastPendingRequest.Date
+                    SubmitDate = lastPendingRequest.Date,
+                    Limit = limit
                 };
             }
 

@@ -19,6 +19,7 @@ namespace Lykke.Service.Tier.Client.Models.Responses
         public AccountTier Tier { get; set; }
         public DateTime SubmitDate { get; set; }
         public string Status { get; set; }
+        public double Limit { get; set; }
     }
 
     public class CurrentTierInfo

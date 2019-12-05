@@ -8,5 +8,6 @@ namespace Lykke.Service.Tier.Domain
         public AccountTier Tier { get; set; }
         public DateTime SubmitDate { get; set; }
         public string Status { get; set; }
+        public double Limit { get; set; }
     }
 }
