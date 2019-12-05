@@ -86,7 +86,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     case KycStatus.Ok:
                         var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
 
-                        if (tierInfo.CurrentTier.MaxLimit == 0)
+                        if (tierInfo.CurrentTier.Tier != AccountTier.Beginner && tierInfo.CurrentTier.MaxLimit == 0)
                             return;
 
                         var sb = new StringBuilder();
