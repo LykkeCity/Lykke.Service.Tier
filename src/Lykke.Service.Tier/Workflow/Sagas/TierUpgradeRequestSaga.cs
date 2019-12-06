@@ -105,7 +105,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                             });
 
                         if (pushEnabled)
-                            pushTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "PushTierUpgradedTemplateNoAmount" : "PushTierUpgradedTemplate", clientAcc.PartnerId, "EN",
+                            pushTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "PushTierUpgradedNoAmountTemplate" : "PushTierUpgradedTemplate", clientAcc.PartnerId, "EN",
                                 new { Tier = evt.Tier.ToString(), Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}"});
 
                         type = NotificationType.TierUpgraded.ToString();
