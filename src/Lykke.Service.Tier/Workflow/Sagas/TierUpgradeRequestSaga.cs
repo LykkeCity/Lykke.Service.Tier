@@ -30,7 +30,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ITiersService _tiersService;
         private readonly IEmailSender _emailSender;
         private readonly ITemplateFormatter _templateFormatter;
-        private readonly IMapper _mapper;
 
         public TierUpgradeRequestSaga(
             ITierUpgradeService tierUpgradeService,
@@ -39,8 +38,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             IKycDocumentsServiceV2 kycDocumentsService,
             ITiersService tiersService,
             IEmailSender emailSender,
-            ITemplateFormatter templateFormatter,
-            IMapper mapper
+            ITemplateFormatter templateFormatter
         )
         {
             _tierUpgradeService = tierUpgradeService;
@@ -50,7 +48,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _tiersService = tiersService;
             _emailSender = emailSender;
             _templateFormatter = templateFormatter;
-            _mapper = mapper;
         }
 
         public Task Handle(TierUpgradeRequestChangedEvent evt, ICommandSender commandSender)
