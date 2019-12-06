@@ -6,7 +6,6 @@ using AutoMapper;
 using Lykke.Cqrs;
 using Lykke.Messages.Email.MessageData;
 using Lykke.Service.ClientAccount.Client;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.EmailSender;
 using Lykke.Service.Kyc.Abstractions.Domain.Documents;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
@@ -86,9 +85,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     case KycStatus.Ok:
                         var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
 
-                        if (tierInfo.CurrentTier.Tier != AccountTier.Beginner && tierInfo.CurrentTier.MaxLimit == 0)
-                            return;
-
                         var sb = new StringBuilder();
                         bool noAmountTemplate = tierInfo.CurrentTier.MaxLimit > 0;
 
@@ -108,8 +104,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                                 UpgradeText = sb.ToString()
                             });
 
-                        if (pushEnabled && !noAmountTemplate)
-                            pushTemplateTask = _templateFormatter.FormatAsync("PushTierUpgradedTemplate", clientAcc.PartnerId, "EN",
+                        if (pushEnabled)
+                            pushTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "PushTierUpgradedTemplateNoAmount" : "PushTierUpgradedTemplate", clientAcc.PartnerId, "EN",
                                 new { Tier = evt.Tier.ToString(), Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}"});
 
                         type = NotificationType.TierUpgraded.ToString();
