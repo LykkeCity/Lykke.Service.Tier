@@ -86,7 +86,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                         var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
 
                         var sb = new StringBuilder();
-                        bool noAmountTemplate = tierInfo.CurrentTier.MaxLimit > 0;
+                        bool noAmountTemplate = tierInfo.CurrentTier.MaxLimit == 0;
 
                         if (tierInfo.NextTier != null)
                         {
