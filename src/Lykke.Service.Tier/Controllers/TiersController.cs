@@ -4,6 +4,7 @@ using AutoMapper;
 using Lykke.Common.Api.Contract.Responses;
 using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Response.ClientAccountInformation;
 using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Contract.Models;
@@ -22,12 +23,14 @@ namespace Lykke.Service.Tier.Controllers
         private readonly IClientAccountClient _clientAccountClient;
         private readonly IPersonalDataService _personalDataService;
         private readonly ITiersService _tiersService;
+        private readonly ILimitsService _limitsService;
         private readonly IMapper _mapper;
 
         public TiersController(
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
             ITiersService tiersService,
+            ILimitsService limitsService,
             IMapper mapper
 
             )
@@ -35,6 +38,7 @@ namespace Lykke.Service.Tier.Controllers
             _clientAccountClient = clientAccountClient;
             _personalDataService = personalDataService;
             _tiersService = tiersService;
+            _limitsService = limitsService;
             _mapper = mapper;
         }
 
@@ -59,6 +63,18 @@ namespace Lykke.Service.Tier.Controllers
             var tierInfo = await _tiersService.GetClientTierInfoAsync(client.Id, client.Tier, pd.CountryFromPOA);
 
             return _mapper.Map<TierInfoResponse>(tierInfo);
+        }
+
+        /// <inheritdoc cref="ITiersApi"/>
+        [HttpGet("limit/{clientId}/{tier}")]
+        [SwaggerOperation("GetTierLimit")]
+        [ProducesResponseType(typeof(TierLimitResponse), (int)HttpStatusCode.OK)]
+        public async Task<TierLimitResponse> GetTierLimitAsync(string clientId, AccountTier tier)
+        {
+            var pd = await _personalDataService.GetAsync(clientId);
+            var limit = await _limitsService.GetClientLimitSettingsAsync(clientId, tier, pd.CountryFromPOA);
+
+            return new TierLimitResponse {Limit = limit?.MaxLimit ?? 0};
         }
     }
 }
