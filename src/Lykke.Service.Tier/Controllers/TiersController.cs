@@ -1,15 +1,15 @@
-using System;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using AutoMapper;
 using Lykke.Common.Api.Contract.Responses;
 using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models;
+using Lykke.Service.ClientAccount.Client.Models.Response.ClientAccountInformation;
 using Lykke.Service.PersonalData.Contract;
+using Lykke.Service.PersonalData.Contract.Models;
 using Lykke.Service.Tier.Client.Api;
 using Lykke.Service.Tier.Client.Models.Responses;
-using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -21,23 +21,24 @@ namespace Lykke.Service.Tier.Controllers
     {
         private readonly IClientAccountClient _clientAccountClient;
         private readonly IPersonalDataService _personalDataService;
+        private readonly ITiersService _tiersService;
         private readonly ILimitsService _limitsService;
-        private readonly ITierUpgradeService _tierUpgradeService;
-        private readonly ISettingsService _settingsService;
+        private readonly IMapper _mapper;
 
         public TiersController(
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
+            ITiersService tiersService,
             ILimitsService limitsService,
-            ITierUpgradeService tierUpgradeService,
-            ISettingsService settingsService
+            IMapper mapper
+
             )
         {
             _clientAccountClient = clientAccountClient;
             _personalDataService = personalDataService;
+            _tiersService = tiersService;
             _limitsService = limitsService;
-            _tierUpgradeService = tierUpgradeService;
-            _settingsService = settingsService;
+            _mapper = mapper;
         }
 
         /// <inheritdoc cref="ITiersApi"/>
@@ -47,62 +48,32 @@ namespace Lykke.Service.Tier.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.NotFound)]
         public async Task<TierInfoResponse> GetClientTierInfoAsync(string clientId)
         {
-            var client = await _clientAccountClient.ClientAccountInformation.GetByIdAsync(clientId);
+            var clientTask = _clientAccountClient.ClientAccountInformation.GetByIdAsync(clientId);
+            var pdTask = _personalDataService.GetAsync(clientId);
 
-            if (client == null)
+            await Task.WhenAll(clientTask, pdTask);
+
+            ClientInfo client = clientTask.Result;
+            IPersonalData pd = pdTask.Result;
+
+            if (pd == null)
                 throw new ValidationApiException(HttpStatusCode.NotFound, "Client not found");
 
-            var pd = await _personalDataService.GetAsync(clientId);
-            AccountTier? nextTier = GetNextTier(client.Tier);
+            var tierInfo = await _tiersService.GetClientTierInfoAsync(client.Id, client.Tier, pd.CountryFromPOA);
 
-            var maxLimitTask = _limitsService.GetClientLimitSettingsAsync(clientId, client.Tier, pd.CountryFromPOA);
-            Task<ITierUpgradeRequest> tierUpgradeRequestTask = nextTier.HasValue
-                ? _tierUpgradeService.GetAsync(clientId, nextTier.Value)
-                : Task.FromResult((ITierUpgradeRequest)null);
-
-            await Task.WhenAll(maxLimitTask, tierUpgradeRequestTask);
-
-            var maxLimit = maxLimitTask.Result;
-            var tierUpgradeRequest = tierUpgradeRequestTask.Result;
-
-            TierInfo tierInfo = null;
-
-            if (nextTier.HasValue)
-            {
-                var nextTierLimits = await _limitsService.GetClientLimitSettingsAsync(clientId, nextTier.Value, pd.CountryFromPOA);
-
-                if (nextTierLimits != null)
-                {
-                    tierInfo = new TierInfo
-                    {
-                        Tier = nextTier.Value,
-                        MaxLimit = nextTierLimits.MaxLimit ?? 0,
-                        Documents = nextTierLimits.Documents.Select(x => x.ToString()).ToArray(),
-                        DocumentsSubmitDate = tierUpgradeRequest?.Date
-                    };
-                }
-            }
-
-            var currentDepositAmount = await _limitsService.GetClientDepositAmountAsync(client.Id, client.Tier);
-
-            return new TierInfoResponse
-            {
-                Tier = client.Tier,
-                Asset =  _settingsService.GetDefaultAsset(),
-                Current = currentDepositAmount,
-                MaxLimit = maxLimit?.MaxLimit ?? 0,
-                NextTier = tierInfo
-            };
+            return _mapper.Map<TierInfoResponse>(tierInfo);
         }
 
-        private static AccountTier? GetNextTier(AccountTier tier)
+        /// <inheritdoc cref="ITiersApi"/>
+        [HttpGet("limit/{clientId}/{tier}")]
+        [SwaggerOperation("GetTierLimit")]
+        [ProducesResponseType(typeof(TierLimitResponse), (int)HttpStatusCode.OK)]
+        public async Task<TierLimitResponse> GetTierLimitAsync(string clientId, AccountTier tier)
         {
-            if (tier == AccountTier.ProIndividual)
-                return null;
+            var pd = await _personalDataService.GetAsync(clientId);
+            var limit = await _limitsService.GetClientLimitSettingsAsync(clientId, tier, pd.CountryFromPOA);
 
-            var values = (AccountTier[]) Enum.GetValues(typeof(AccountTier));
-
-            return values[((int) tier) + 1];
+            return new TierLimitResponse {Limit = limit?.MaxLimit ?? 0};
         }
     }
 }

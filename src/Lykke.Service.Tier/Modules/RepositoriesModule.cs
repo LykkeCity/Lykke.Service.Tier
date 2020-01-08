@@ -1,5 +1,6 @@
 using Autofac;
 using AzureStorage.Tables;
+using AzureStorage.Tables.Templates.Index;
 using JetBrains.Annotations;
 using Lykke.Common.Log;
 using Lykke.Service.Tier.AzureRepositories;
@@ -30,7 +31,10 @@ namespace Lykke.Service.Tier.Modules
             builder.Register(ctx =>
                 new TierUpgradeRequestsRepository(AzureTableStorage<TierUpgradeRequestEntity>.Create(
                     _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
-                    "TierUpgradeRequests", ctx.Resolve<ILogFactory>()))
+                    "TierUpgradeRequests", ctx.Resolve<ILogFactory>()),
+                    AzureTableStorage<AzureIndex>.Create(
+                        _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                        "TierUpgradeRequests", ctx.Resolve<ILogFactory>()))
             ).As<ITierUpgradeRequestsRepository>().SingleInstance();
 
             builder.Register(ctx =>
@@ -44,6 +48,30 @@ namespace Lykke.Service.Tier.Modules
                     _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
                     "ClientDeposits", ctx.Resolve<ILogFactory>()))
             ).As<IClientDepositsRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new QuestionsRepository(AzureTableStorage<QuestionEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "Questions", ctx.Resolve<ILogFactory>()))
+            ).As<IQuestionsRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new AnswersRepository(AzureTableStorage<AnswerEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "Answers", ctx.Resolve<ILogFactory>()))
+            ).As<IAnswersRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new UserChoicesRepository(AzureTableStorage<UserChoiceEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "QuestionnaireChoices", ctx.Resolve<ILogFactory>()))
+            ).As<IUserChoicesRepository>().SingleInstance();
+
+            builder.Register(ctx =>
+                new QuestionsRankRepository(AzureTableStorage<QuestionRankEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "QuestionnaireRanks", ctx.Resolve<ILogFactory>()))
+            ).As<IQuestionsRankRepository>().SingleInstance();
         }
     }
 }

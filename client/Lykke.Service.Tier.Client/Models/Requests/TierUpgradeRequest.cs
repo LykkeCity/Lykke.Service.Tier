@@ -1,4 +1,3 @@
-
 namespace Lykke.Service.Tier.Client.Models.Requests
 {
     public class TierUpgradeRequest
@@ -7,6 +6,5 @@ namespace Lykke.Service.Tier.Client.Models.Requests
         public TierModel Tier { get; set; }
         public string KycStatus { get; set; }
         public string Changer { get; set; }
-        public string Comment { get; set; }
     }
 }

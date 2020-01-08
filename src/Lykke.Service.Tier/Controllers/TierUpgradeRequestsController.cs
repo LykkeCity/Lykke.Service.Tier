@@ -1,19 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
+using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Tier.Client.Api;
 using Lykke.Service.Tier.Client.Models;
-using Lykke.Service.Tier.Client.Models.Requests;
 using Lykke.Service.Tier.Client.Models.Responses;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
-using Lykke.Service.Tier.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using TierUpgradeRequest = Lykke.Service.Tier.Client.Models.Requests.TierUpgradeRequest;
 
 namespace Lykke.Service.Tier.Controllers
 {
@@ -46,9 +45,29 @@ namespace Lykke.Service.Tier.Controllers
         [ProducesResponseType(typeof(TierUpgradeRequestResponse), (int)HttpStatusCode.OK)]
         public async Task<TierUpgradeRequestResponse> GetAsync(string clientId, TierModel tier)
         {
-            ITierUpgradeRequest result = await _tierUpgradeService.GetAsync(clientId, tier.ToAccountTier());
+            ITierUpgradeRequest result = await _tierUpgradeService.GetAsync(clientId, _mapper.Map<AccountTier>(tier));
 
             return _mapper.Map<TierUpgradeRequestResponse>(result);
+        }
+
+        /// <inheritdoc cref="ITierUpgradeRequestsApi"/>
+        [HttpGet("pending")]
+        [SwaggerOperation("TierUpgradeRequestsAll")]
+        [ProducesResponseType(typeof(IReadOnlyList<TierUpgradeRequestResponse>), (int)HttpStatusCode.OK)]
+        public async Task<IReadOnlyList<TierUpgradeRequestResponse>> GetPendingRequestsAsync()
+        {
+            var result = await _tierUpgradeService.GetPendingRequestsAsync();
+            return _mapper.Map<List<TierUpgradeRequestResponse>>(result);
+        }
+
+        /// <inheritdoc cref="ITierUpgradeRequestsApi"/>
+        [HttpGet("client/{clientId}")]
+        [SwaggerOperation("TierUpgradeRequests")]
+        [ProducesResponseType(typeof(IReadOnlyList<TierUpgradeRequestResponse>), (int)HttpStatusCode.OK)]
+        public async Task<IReadOnlyList<TierUpgradeRequestResponse>> GetByClientAsync(string clientId)
+        {
+            var result = await _tierUpgradeService.GetByClientAsync(clientId);
+            return _mapper.Map<List<TierUpgradeRequestResponse>>(result);
         }
 
         /// <inheritdoc cref="ITierUpgradeRequestsApi"/>
@@ -57,8 +76,8 @@ namespace Lykke.Service.Tier.Controllers
         [ProducesResponseType(typeof(IReadOnlyList<TierUpgradeRequestResponse>), (int)HttpStatusCode.OK)]
         public async Task<IReadOnlyList<TierUpgradeRequestResponse>> GetByTierAsync(TierModel tier)
         {
-            var result = await _tierUpgradeService.GetByTierAsync(tier.ToAccountTier());
-            return _mapper.Map<IReadOnlyList<TierUpgradeRequestResponse>>(result.Where(x => x.KycStatus != KycStatus.Ok));
+            var result = await _tierUpgradeService.GetByTierAsync(_mapper.Map<AccountTier>(tier));
+            return _mapper.Map<IReadOnlyList<TierUpgradeRequestResponse>>(result);
         }
 
         /// <inheritdoc cref="ITierUpgradeRequestsApi"/>
@@ -69,8 +88,8 @@ namespace Lykke.Service.Tier.Controllers
         {
             Enum.TryParse(request.KycStatus, out KycStatus status);
 
-            return _tierUpgradeService.AddAsync(request.ClientId, request.Tier.ToAccountTier(), status,
-                request.Changer, request.Comment);
+            return _tierUpgradeService.AddAsync(request.ClientId, _mapper.Map<AccountTier>(request.Tier), status,
+                request.Changer);
         }
     }
 }

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Lykke.Cqrs;
 using Lykke.Messages.Email.MessageData;
 using Lykke.Service.ClientAccount.Client;
-using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.EmailSender;
 using Lykke.Service.Kyc.Abstractions.Domain.Documents;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
@@ -27,6 +26,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly IClientAccountClient _clientAccountClient;
         private readonly IPersonalDataService _personalDataService;
         private readonly IKycDocumentsServiceV2 _kycDocumentsService;
+        private readonly ITiersService _tiersService;
         private readonly IEmailSender _emailSender;
         private readonly ITemplateFormatter _templateFormatter;
 
@@ -35,6 +35,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
             IKycDocumentsServiceV2 kycDocumentsService,
+            ITiersService tiersService,
             IEmailSender emailSender,
             ITemplateFormatter templateFormatter
         )
@@ -43,6 +44,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _clientAccountClient = clientAccountClient;
             _personalDataService = personalDataService;
             _kycDocumentsService = kycDocumentsService;
+            _tiersService = tiersService;
             _emailSender = emailSender;
             _templateFormatter = templateFormatter;
         }
@@ -77,13 +79,32 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                 switch (evt.NewStatus)
                 {
                     case KycStatus.Ok:
-                        emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradedTemplate", clientAcc.PartnerId,
-                            "EN", new { FullName = personalData.FullName, Tier = evt.Tier.ToString(), Year = DateTime.UtcNow.Year });
+                        var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
+
+                        var sb = new StringBuilder();
+                        bool noAmountTemplate = tierInfo.CurrentTier.MaxLimit == 0;
+
+                        if (tierInfo.NextTier != null)
+                        {
+                            sb.AppendLine(
+                                $"If you wish to increase deposit limit, just upgrade to an {tierInfo.NextTier.Tier} account.");
+                            sb.AppendLine("<br>Or use Lykke Wallet mobile app (More->Profile->Upgrade)");
+                        }
+
+                        emailTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "TierUpgradedNoAmountTemplate" : "TierUpgradedTemplate", clientAcc.PartnerId,
+                            "EN", new
+                            {
+                                Tier = evt.Tier.ToString(),
+                                Year = DateTime.UtcNow.Year,
+                                Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}",
+                                UpgradeText = sb.ToString()
+                            });
 
                         if (pushEnabled)
-                            pushTemplateTask = _templateFormatter.FormatAsync("PushTierUpgradedTemplate", clientAcc.PartnerId, "EN", new { Tier = evt.Tier.ToString() });
+                            pushTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "PushTierUpgradedNoAmountTemplate" : "PushTierUpgradedTemplate", clientAcc.PartnerId, "EN",
+                                new { Tier = evt.Tier.ToString(), Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}"});
 
-                        type = NotificationType.Info.ToString();
+                        type = NotificationType.TierUpgraded.ToString();
                         break;
                     case KycStatus.NeedToFillData:
                         var documents = await _kycDocumentsService.GetCurrentDocumentsAsync(evt.ClientId);
@@ -106,27 +127,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     case KycStatus.Rejected:
                         emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradeRejectedTemplate", clientAcc.PartnerId,
                             "EN", new { FullName = personalData.FullName, Tier = evt.Tier.ToString(), Year = DateTime.UtcNow.Year });
-                        break;
-
-                    case KycStatus.RestrictedArea:
-                        emailTemplateTask = _templateFormatter.FormatAsync("RestrictedAreaTemplate", clientAcc.PartnerId,
-                            "EN", new { FirstName = personalData.FirstName, LastName = personalData.LastName, Year = DateTime.UtcNow.Year });
-
-                        if (pushEnabled)
-                            pushTemplateTask = _templateFormatter.FormatAsync("PushKycRestrictedTemplate", clientAcc.PartnerId, "EN", new { });
-
-                        type = NotificationType.KycRestrictedArea.ToString();
-                        break;
-
-                    case KycStatus.Pending:
-                        //first request to ProIndividual tier
-                        if (evt.OldStatus == null && evt.Tier == AccountTier.ProIndividual)
-                        {
-                            emailTemplateTask = _templateFormatter.FormatAsync("TierUpgradePofInstructionTemplate",
-                                clientAcc.PartnerId,
-                                "EN", new {FullName = personalData.FullName, Year = DateTime.UtcNow.Year});
-                        }
-
                         break;
                 }
             }

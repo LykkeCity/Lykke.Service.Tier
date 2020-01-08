@@ -7,8 +7,8 @@ using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
-using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
+using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Audit;
@@ -28,13 +28,15 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly ITierUpgradeRequestsRepository _repository;
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly IClientAccountClient _clientAccountClient;
+        private readonly IKycStatusService _kycStatusService;
 
         public TierUpgradeService(
             string instanceName,
             IDatabase database,
             ITierUpgradeRequestsRepository repository,
             IAuditLogRepository auditLogRepository,
-            IClientAccountClient clientAccountClient
+            IClientAccountClient clientAccountClient,
+            IKycStatusService kycStatusService
         )
         {
             _instanceName = instanceName;
@@ -42,13 +44,21 @@ namespace Lykke.Service.Tier.DomainServices
             _repository = repository;
             _auditLogRepository = auditLogRepository;
             _clientAccountClient = clientAccountClient;
+            _kycStatusService = kycStatusService;
         }
 
-        public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer, string comment = null)
+        public async Task AddAsync(string clientId, AccountTier tier, KycStatus status, string changer)
         {
             ITierUpgradeRequest currentTierRequest = await GetAsync(clientId, tier);
+            DateTime? requestDate = null;
 
-            await _repository.AddAsync(clientId, tier, status);
+            if (currentTierRequest != null && status != KycStatus.Pending)
+            {
+                requestDate = currentTierRequest.Date;
+                await _repository.DeletePendingRequestIndexAsync(clientId, currentTierRequest.Tier);
+            }
+
+            await _repository.AddAsync(clientId, tier, status, date: requestDate);
 
             await _auditLogRepository.InsertRecordAsync(clientId, new AuditLogData
             {
@@ -59,15 +69,15 @@ namespace Lykke.Service.Tier.DomainServices
                 Changer = changer
             });
 
-            if (status == KycStatus.Ok)
+            switch (status)
             {
-                await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
-                await _clientAccountClient.ClientSettings.SetCashOutBlockAsync(new CashOutBlockRequest
-                {
-                    ClientId = clientId,
-                    CashOutBlocked = false,
-                    TradesBlocked = false
-                });
+                case KycStatus.Ok:
+                    await _clientAccountClient.ClientAccount.ChangeAccountTierAsync(clientId, new AccountTierRequest{ Tier = tier});
+                    break;
+                case KycStatus.Rejected:
+                case KycStatus.RestrictedArea:
+                    await _kycStatusService.ChangeKycStatusAsync(clientId, status, nameof(TierUpgradeService));
+                    break;
             }
 
             if (currentTierRequest?.KycStatus != status)
@@ -101,6 +111,16 @@ namespace Lykke.Service.Tier.DomainServices
         public Task<ITierUpgradeRequest> GetAsync(string clientId, AccountTier tier)
         {
             return _repository.GetAsync(clientId, tier);
+        }
+
+        public Task<IReadOnlyList<ITierUpgradeRequest>> GetByClientAsync(string clientId)
+        {
+            return _repository.GetByClientAsync(clientId);
+        }
+
+        public Task<IReadOnlyList<ITierUpgradeRequest>> GetPendingRequestsAsync()
+        {
+            return _repository.GetPendingRequestsAsync();
         }
 
         public async Task<Dictionary<string, int>> GetCountsAsync()

@@ -67,9 +67,14 @@ namespace Lykke.Service.Tier.DomainServices
 
             var individualLimit = await _limitsRepository.GetAsync(clientId);
 
-            limit.MaxLimit = individualLimit?.Limit ?? limit.MaxLimit;
+            var result = new LimitSettings
+            {
+                Tier = limit.Tier,
+                MaxLimit = individualLimit?.Limit ?? limit.MaxLimit,
+                Documents = limit.Documents
+            };
 
-            return limit;
+            return result;
         }
 
         public async Task SaveDepositOperationAsync(ClientDepositEvent evt)
@@ -92,9 +97,7 @@ namespace Lykke.Service.Tier.DomainServices
             var monthAgo = DateTime.UtcNow.AddMonths(-1);
             var deposits = await _clientDepositsRepository.GetDepositsAsync(clientId);
 
-            return tier == AccountTier.Apprentice
-                ? deposits.Sum(x => x.BaseVolume)
-                : deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
+            return deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
         }
 
         public Task AddLimitAsync(string clientId, double limit, string asset)

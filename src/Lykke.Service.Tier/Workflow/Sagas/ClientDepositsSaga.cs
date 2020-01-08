@@ -1,9 +1,12 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
 using Lykke.Service.ClientAccount.Client.Models.Response.ClientAccountInformation;
+using Lykke.Service.Kyc.Abstractions.Domain.Verification;
+using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.Limitations.Client.Events;
 using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Contract.Models;
@@ -23,13 +26,17 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ILimitsService _limitsService;
         private readonly ISettingsService _settingsService;
         private readonly ITemplateFormatter _templateFormatter;
+        private readonly IKycStatusService _kycStatusService;
+        private readonly ITierUpgradeService _tierUpgradeService;
 
         public ClientDepositsSaga(
             IClientAccountClient clientAccountClient,
             IPersonalDataService personalDataService,
             ILimitsService limitsService,
             ISettingsService settingsService,
-            ITemplateFormatter templateFormatter
+            ITemplateFormatter templateFormatter,
+            IKycStatusService kycStatusService,
+            ITierUpgradeService tierUpgradeService
             )
         {
             _clientAccountClient = clientAccountClient;
@@ -37,6 +44,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _limitsService = limitsService;
             _settingsService = settingsService;
             _templateFormatter = templateFormatter;
+            _kycStatusService = kycStatusService;
+            _tierUpgradeService = tierUpgradeService;
         }
 
         public async Task Handle(ClientDepositEvent evt, ICommandSender commandSender)
@@ -71,10 +80,29 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
             if (checkAmount > currentLimitSettings.MaxLimit.Value)
             {
-                await _clientAccountClient.ClientSettings.SetCashOutBlockAsync(new CashOutBlockRequest
+                var requests = await _tierUpgradeService.GetByClientAsync(evt.ClientId);
+
+                var kycStatus = KycStatus.NeedToFillData;
+
+                if (requests.Any())
                 {
-                    ClientId = evt.ClientId, CashOutBlocked = false, TradesBlocked = true
-                });
+                    if (requests.Any(x => x.KycStatus == KycStatus.Pending))
+                    {
+                        kycStatus = KycStatus.Pending;
+                    }
+
+                    if (requests.Any(x => x.KycStatus == KycStatus.Rejected))
+                    {
+                        kycStatus = KycStatus.NeedToFillData;
+                    }
+                }
+                else
+                {
+                    kycStatus = KycStatus.NeedToFillData;
+                }
+
+                await _kycStatusService.ChangeKycStatusAsync(evt.ClientId, kycStatus, $"{nameof(ClientDepositsSaga)} - limit reached ({checkAmount} of {currentLimitSettings.MaxLimit.Value} {_settingsService.GetDefaultAsset()})");
+
             }
 
             if (checkAmount <= currentLimitSettings.MaxLimit.Value)
@@ -102,7 +130,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     commandSender.SendCommand(new TextNotificationCommand
                     {
                         NotificationIds = new[]{clientAccount.NotificationsId},
-                        Type = NotificationType.Info.ToString(),
+                        Type = NotificationType.DepositLimitPercentReached.ToString(),
                         Message = template.Subject
                     }, PushNotificationsBoundedContext.Name);
                 }

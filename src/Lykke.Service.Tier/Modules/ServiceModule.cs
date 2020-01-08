@@ -59,6 +59,14 @@ namespace Lykke.Service.Tier.Modules
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.PushLimitsReachedAt))
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.DefaultAsset))
                 .SingleInstance();
+
+            builder.RegisterType<TiersService>()
+                .As<ITiersService>()
+                .SingleInstance();
+
+            builder.RegisterType<QuestionnaireService>()
+                .As<IQuestionnaireService>()
+                .SingleInstance();
         }
     }
 }
