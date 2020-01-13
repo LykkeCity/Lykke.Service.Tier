@@ -171,6 +171,7 @@ namespace TiersMigration
 
             builder.RegisterClientAccountClient(settings.ClintAccountServiceUrl);
             builder.RegisterTemplateFormatter(settings.TemplateFormatterUrl);
+            builder.RegisterTierClient(new TierServiceClientSettings{ServiceUrl = settings.TierServiceUrl});
             builder.RegisterEmailSenderViaAzureQueueMessageProducer(ConstantReloadingManager.From(settings.ClientPersonalInfoConnString));
             return builder.Build();
         }
