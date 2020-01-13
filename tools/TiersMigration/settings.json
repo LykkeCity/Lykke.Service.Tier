@@ -1,0 +1,10 @@
+﻿{
+  "KycStatusesConnString": "",
+  "ClientPersonalInfoConnString": "",
+  "PdApiKey": "key",
+  "PdServiceUrl": "",
+  "ClintAccountServiceUrl": "",
+  "TemplateFormatterUrl": "",
+  "Tier2Emails": {
+  }
+}
