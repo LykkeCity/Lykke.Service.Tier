@@ -253,7 +253,7 @@ namespace TiersMigration
             var depositsStorage = container.Resolve<INoSQLTableStorage<DepositOperationEntity>>();
 
             var to = DateTime.UtcNow;
-            var from = to.AddMonths(-10);
+            var from = to.AddMonths(-1);
 
             var historyItems = (await historyClient.HistoryApi.GetHistoryByWalletAsync(Guid.Parse(clientId),
                             new[] {HistoryType.CashIn}, limit: int.MaxValue,
