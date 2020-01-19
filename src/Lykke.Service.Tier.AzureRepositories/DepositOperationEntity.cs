@@ -1,9 +1,12 @@
 using System;
 using Lykke.AzureStorage.Tables;
+using Lykke.AzureStorage.Tables.Entity.Annotation;
+using Lykke.AzureStorage.Tables.Entity.ValueTypesMerging;
 using Lykke.Service.Tier.Domain.Deposits;
 
 namespace Lykke.Service.Tier.AzureRepositories
 {
+    [ValueTypeMergingStrategy(ValueTypeMergingStrategy.UpdateAlways)]
     public class DepositOperationEntity : AzureTableEntity, IDepositOperation
     {
         public string ClientId { get; set; }
