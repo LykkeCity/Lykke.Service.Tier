@@ -60,11 +60,13 @@ namespace TiersMigration
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,Email,Country,CountryRisk,Tier,Limit,Deposits,ChangeTier,SetLimit,SendEmail,Comment");
 
+            int total = 0;
+
             await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
             {
                 var items = entities.ToList();
 
-                ProcessClientsAsync(items.Select(x => x.ClientId), container, sb).GetAwaiter().GetResult();
+                ProcessClientsAsync(items.Select(x => x.ClientId), container, sb, total).GetAwaiter().GetResult();
             });
 
             var filename = $"tiers-migration-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
@@ -78,7 +80,7 @@ namespace TiersMigration
             Console.WriteLine("Done!");
         }
 
-        private static async Task ProcessClientsAsync(IEnumerable<string> clientIds, IContainer container, StringBuilder sb)
+        private static async Task ProcessClientsAsync(IEnumerable<string> clientIds, IContainer container, StringBuilder sb, int total)
         {
             var personalDataService = container.Resolve<IPersonalDataService>();
             var tierClient = container.Resolve<ITierClient>();
@@ -90,12 +92,14 @@ namespace TiersMigration
             Console.WriteLine($"Processing {personalDatas.Count} items");
             int index = 0;
 
+
             foreach (var pd in personalDatas.AsParallel())
             {
                 try
                 {
-                    Interlocked.Add(ref index, 1);
-                    Console.WriteLine($"{index} of {personalDatas.Count}. Processing client = {pd.Id}");
+                    Interlocked.Increment(ref index);
+                    Interlocked.Increment(ref total);
+                    Console.WriteLine($"{total} ({index} of {personalDatas.Count} chunk). Processing client = {pd.Id}");
                     var tierInfoTask = tierClient.Tiers.GetClientTierInfoAsync(pd.Id);
                     var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
 
@@ -117,28 +121,28 @@ namespace TiersMigration
                     double totalDepositAmount = 0;
                     (tier, limit, comment) = GetTierAndLimit(container, countryRisk.Risk, pd.Email.ToLowerInvariant());
 
-                    try
-                    {
-                        clientAccountClient.ClientAccount
-                            .ChangeAccountTierAsync(pd.Id, new AccountTierRequest {Tier = tier}).GetAwaiter()
-                            .GetResult();
-                        changeTier = "success";
-                    }
-                    catch(Exception ex)
-                    {
-                        changeTier = ex.Message;
-                    }
-
                     // try
                     // {
-                    //     tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
-                    //         .GetAwaiter().GetResult();
-                    //     setLimit = "success";
+                    //     clientAccountClient.ClientAccount
+                    //         .ChangeAccountTierAsync(pd.Id, new AccountTierRequest {Tier = tier}).GetAwaiter()
+                    //         .GetResult();
+                    //     changeTier = "success";
                     // }
-                    // catch (Exception ex)
+                    // catch(Exception ex)
                     // {
-                    //     setLimit = ex.Message;
+                    //     changeTier = ex.Message;
                     // }
+
+                    try
+                    {
+                        tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
+                            .GetAwaiter().GetResult();
+                        setLimit = "success";
+                    }
+                    catch (Exception ex)
+                    {
+                        setLimit = ex.Message;
+                    }
                     //
                     // var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
                     //
