@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using AzureStorage;
@@ -87,13 +88,14 @@ namespace TiersMigration
             var personalDatas = (await personalDataService.GetAsync(clientIds)).ToList();
 
             Console.WriteLine($"Processing {personalDatas.Count} items");
-            int index = 1;
+            int index = 0;
 
             foreach (var pd in personalDatas.AsParallel())
             {
                 try
                 {
-                    Console.WriteLine($"{index++} of {personalDatas.Count}. Processing client = {pd.Id}");
+                    Interlocked.Add(ref index, 1);
+                    Console.WriteLine($"{index} of {personalDatas.Count}. Processing client = {pd.Id}");
                     var tierInfoTask = tierClient.Tiers.GetClientTierInfoAsync(pd.Id);
                     var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
 
