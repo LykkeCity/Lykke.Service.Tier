@@ -87,11 +87,13 @@ namespace TiersMigration
             var personalDatas = (await personalDataService.GetAsync(clientIds)).ToList();
 
             Console.WriteLine($"Processing {personalDatas.Count} items");
+            int index = 1;
 
-            foreach (var pd in personalDatas)
+            foreach (var pd in personalDatas.AsParallel())
             {
                 try
                 {
+                    Console.WriteLine($"{index++} of {personalDatas.Count}. Processing client = {pd.Id}");
                     var tierInfoTask = tierClient.Tiers.GetClientTierInfoAsync(pd.Id);
                     var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
 
@@ -110,7 +112,7 @@ namespace TiersMigration
                     string setLimit = "-";
                     string sendEmail = "-";
                     bool isRestricted = countryRisk.Risk == null;
-
+                    double totalDepositAmount = 0;
                     (tier, limit, comment) = GetTierAndLimit(container, countryRisk.Risk, pd.Email.ToLowerInvariant());
 
                     try
@@ -125,51 +127,51 @@ namespace TiersMigration
                         changeTier = ex.Message;
                     }
 
-                    try
-                    {
-                        tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
-                            .GetAwaiter().GetResult();
-                        setLimit = "success";
-                    }
-                    catch (Exception ex)
-                    {
-                        setLimit = ex.Message;
-                    }
-
-                    var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
-
-                    if (totalDepositAmount > Convert.ToDecimal(limit) && !isRestricted)
-                    {
-                        if (string.IsNullOrEmpty(comment))
-                            comment = "Deposited amount is bigger than limit!";
-                        else
-                            comment += "; Deposited amount is bigger than limit!";
-
-                        try
-                        {
-                            kycStatusService.ChangeKycStatusAsync(pd.Id, KycStatus.NeedToFillData,
-                                    $"TiersMigration script - limit reached ({totalDepositAmount} of {limit} EUR)")
-                                .GetAwaiter().GetResult();
-                            comment += "; Kyc status changed to NeedToFillData";
-                        }
-                        catch (Exception ex)
-                        {
-                            comment += $"; Error changing kyc status to NeedToFillData: {ex.Message}";
-                        }
-                    }
-
-                    if (limit > 0)
-                    {
-                        try
-                        {
-                            SendEmailAsync(container, tierInfo, tier, pd.Email).GetAwaiter().GetResult();
-                            sendEmail = "success";
-                        }
-                        catch (Exception ex)
-                        {
-                            sendEmail = ex.Message;
-                        }
-                    }
+                    // try
+                    // {
+                    //     tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
+                    //         .GetAwaiter().GetResult();
+                    //     setLimit = "success";
+                    // }
+                    // catch (Exception ex)
+                    // {
+                    //     setLimit = ex.Message;
+                    // }
+                    //
+                    // var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
+                    //
+                    // if (totalDepositAmount > Convert.ToDecimal(limit) && !isRestricted)
+                    // {
+                    //     if (string.IsNullOrEmpty(comment))
+                    //         comment = "Deposited amount is bigger than limit!";
+                    //     else
+                    //         comment += "; Deposited amount is bigger than limit!";
+                    //
+                    //     try
+                    //     {
+                    //         kycStatusService.ChangeKycStatusAsync(pd.Id, KycStatus.NeedToFillData,
+                    //                 $"TiersMigration script - limit reached ({totalDepositAmount} of {limit} EUR)")
+                    //             .GetAwaiter().GetResult();
+                    //         comment += "; Kyc status changed to NeedToFillData";
+                    //     }
+                    //     catch (Exception ex)
+                    //     {
+                    //         comment += $"; Error changing kyc status to NeedToFillData: {ex.Message}";
+                    //     }
+                    // }
+                    //
+                    // if (limit > 0)
+                    // {
+                    //     try
+                    //     {
+                    //         SendEmailAsync(container, tierInfo, tier, pd.Email).GetAwaiter().GetResult();
+                    //         sendEmail = "success";
+                    //     }
+                    //     catch (Exception ex)
+                    //     {
+                    //         sendEmail = ex.Message;
+                    //     }
+                    // }
 
                     sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA},{countryRisk.Risk},{tier},{limit},{totalDepositAmount},{changeTier},{setLimit},{sendEmail},{comment}");
                 }
