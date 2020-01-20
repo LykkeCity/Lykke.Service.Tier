@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,8 +62,6 @@ namespace TiersMigration
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,Email,Country,CountryRisk,Tier,Limit,Deposits,ChangeTier,SetLimit,SendEmail,Comment");
 
-            int total = 0;
-
             var ids = new List<string>()
             {
                 "3dbd99ad-449f-4a31-b0a5-e9702b8efc15",
@@ -73,7 +72,12 @@ namespace TiersMigration
                 "528c0279-69b9-475a-947b-e484867ef89e"
             };
 
-            ProcessClientsAsync(ids, container, sb, total).GetAwaiter().GetResult();
+            var webClient = new WebClient();
+            var template =
+                await webClient.DownloadStringTaskAsync(
+                    "https://lkefiles.blob.core.windows.net/mails/LykkeWallet/TierUpgradedTemplate.html");
+
+            ProcessClientsAsync(ids, container, sb, template).GetAwaiter().GetResult();
 
             // await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
             // {
@@ -93,7 +97,7 @@ namespace TiersMigration
             Console.WriteLine("Done!");
         }
 
-        private static async Task ProcessClientsAsync(IEnumerable<string> clientIds, IContainer container, StringBuilder sb, int total)
+        private static async Task ProcessClientsAsync(IEnumerable<string> clientIds, IContainer container, StringBuilder sb, string template)
         {
             var personalDataService = container.Resolve<IPersonalDataService>();
             var tierClient = container.Resolve<ITierClient>();
@@ -110,8 +114,7 @@ namespace TiersMigration
                 try
                 {
                     Interlocked.Increment(ref index);
-                    Interlocked.Increment(ref total);
-                    Console.WriteLine($"{total} ({index} of {personalDatas.Count} chunk). Processing client = {pd.Id}");
+                    Console.WriteLine($"({index} of {personalDatas.Count} chunk). Processing client = {pd.Id}");
                     var tierInfoTask = tierClient.Tiers.GetClientTierInfoAsync(pd.Id);
                     var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
 
@@ -182,7 +185,7 @@ namespace TiersMigration
                     {
                         try
                         {
-                            SendEmailAsync(container, tierInfo.NextTier?.Tier, tier, limit, pd.Email).GetAwaiter().GetResult();
+                            SendEmailAsync(container, template, tierInfo.NextTier?.Tier, tier, limit, pd.Email).GetAwaiter().GetResult();
                             sendEmail = "success";
                         }
                         catch (Exception ex)
@@ -239,7 +242,7 @@ namespace TiersMigration
             return (tier, limit, string.Empty);
         }
 
-        private static async Task SendEmailAsync(IContainer container, AccountTier? nextTier, AccountTier tier, double limit, string email)
+        private static async Task SendEmailAsync(IContainer container, string template, AccountTier? nextTier, AccountTier tier, double limit, string email)
         {
             var sb = new StringBuilder();
             var templateFormatter = container.Resolve<ITemplateFormatter>();
@@ -255,20 +258,17 @@ namespace TiersMigration
             var sw = new Stopwatch();
             sw.Start();
 
-            var emailTemplate = await templateFormatter.FormatAsync("TierUpgradedTemplate", null,
-                "EN", new
-                {
-                    Tier = tier.ToString(),
-                    Year = DateTime.UtcNow.Year,
-                    Amount = $"{limit} EUR",
-                    UpgradeText = sb.ToString()
-                });
+            string emailTemplate = template
+                .Replace("@[Tier]", tier.ToString())
+                .Replace("@[Amount]", $"{limit} EUR")
+                .Replace("@[UpgradeText]", sb.ToString())
+                .Replace("@[Year]", DateTime.UtcNow.Year.ToString());
 
             var msgData = new PlainTextData
             {
                 Sender = email,
-                Subject = emailTemplate.Subject,
-                Text = emailTemplate.HtmlBody
+                Subject = "Account level upgraded",
+                Text = emailTemplate
             };
 
             await emailSender.SendEmailAsync(null, email, msgData);
