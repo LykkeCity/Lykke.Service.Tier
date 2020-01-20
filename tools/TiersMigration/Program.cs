@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -62,14 +63,26 @@ namespace TiersMigration
 
             int total = 0;
 
-            await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
+            var ids = new List<string>()
             {
-                var items = entities.ToList();
+                "3dbd99ad-449f-4a31-b0a5-e9702b8efc15",
+                "e7e16a0d-5582-4b0b-a61b-dd3474eb1c5c",
+                "93b40db0-f4bb-44ce-a338-5370f8e27296",
+                "ad51270f-7342-4aa0-b64c-f84dd9cbc989",
+                "81b8086e-b99c-427d-bab8-085abca9e5e2",
+                "528c0279-69b9-475a-947b-e484867ef89e"
+            };
 
-                ProcessClientsAsync(items.Select(x => x.ClientId), container, sb, total).GetAwaiter().GetResult();
-            });
+            ProcessClientsAsync(ids, container, sb, total).GetAwaiter().GetResult();
 
-            var filename = $"tiers-migration-deposits-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            // await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
+            // {
+            //     var items = entities.ToList();
+            //
+            //     ProcessClientsAsync(items.Select(x => x.ClientId), container, sb, total).GetAwaiter().GetResult();
+            // });
+
+            var filename = $"tiers-migration-emails-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
 
             using (var sw = new StreamWriter(filename))
@@ -117,6 +130,7 @@ namespace TiersMigration
                     string setLimit = "-";
                     string sendEmail = "-";
                     bool isRestricted = countryRisk.Risk == null;
+                    double totalDepositAmount = 0;
                     (tier, limit, comment) = GetTierAndLimit(container, countryRisk.Risk, pd.Email.ToLowerInvariant());
 
                     // try
@@ -142,40 +156,40 @@ namespace TiersMigration
                     //     setLimit = ex.Message;
                     // }
                     //
-                    var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
-
-                    if (totalDepositAmount > Convert.ToDecimal(limit) && !isRestricted)
-                    {
-                        if (string.IsNullOrEmpty(comment))
-                            comment = "Deposited amount is bigger than limit!";
-                        else
-                            comment += "; Deposited amount is bigger than limit!";
-
-                        try
-                        {
-                            kycStatusService.ChangeKycStatusAsync(pd.Id, KycStatus.NeedToFillData,
-                                    $"TiersMigration script - limit reached ({totalDepositAmount} of {limit} EUR)")
-                                .GetAwaiter().GetResult();
-                            comment += "; Kyc status changed to NeedToFillData";
-                        }
-                        catch (Exception ex)
-                        {
-                            comment += $"; Error changing kyc status to NeedToFillData: {ex.Message}";
-                        }
-                    }
+                    // var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
                     //
-                    // if (limit > 0)
+                    // if (totalDepositAmount > Convert.ToDecimal(limit) && !isRestricted)
                     // {
+                    //     if (string.IsNullOrEmpty(comment))
+                    //         comment = "Deposited amount is bigger than limit!";
+                    //     else
+                    //         comment += "; Deposited amount is bigger than limit!";
+                    //
                     //     try
                     //     {
-                    //         SendEmailAsync(container, tierInfo, tier, pd.Email).GetAwaiter().GetResult();
-                    //         sendEmail = "success";
+                    //         kycStatusService.ChangeKycStatusAsync(pd.Id, KycStatus.NeedToFillData,
+                    //                 $"TiersMigration script - limit reached ({totalDepositAmount} of {limit} EUR)")
+                    //             .GetAwaiter().GetResult();
+                    //         comment += "; Kyc status changed to NeedToFillData";
                     //     }
                     //     catch (Exception ex)
                     //     {
-                    //         sendEmail = ex.Message;
+                    //         comment += $"; Error changing kyc status to NeedToFillData: {ex.Message}";
                     //     }
                     // }
+                    //
+                    if (limit > 0)
+                    {
+                        try
+                        {
+                            SendEmailAsync(container, tierInfo.NextTier?.Tier, tier, limit, pd.Email).GetAwaiter().GetResult();
+                            sendEmail = "success";
+                        }
+                        catch (Exception ex)
+                        {
+                            sendEmail = ex.Message;
+                        }
+                    }
 
                     sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA},{countryRisk.Risk},{tier},{limit},{totalDepositAmount},{changeTier},{setLimit},{sendEmail},{comment}");
                 }
@@ -225,25 +239,28 @@ namespace TiersMigration
             return (tier, limit, string.Empty);
         }
 
-        private static async Task SendEmailAsync(IContainer container, TierInfoResponse tierInfo, AccountTier tier, string email)
+        private static async Task SendEmailAsync(IContainer container, AccountTier? nextTier, AccountTier tier, double limit, string email)
         {
             var sb = new StringBuilder();
             var templateFormatter = container.Resolve<ITemplateFormatter>();
             var emailSender = container.Resolve<IEmailSender>();
 
-            if (tierInfo.NextTier != null)
+            if (nextTier != null)
             {
                 sb.AppendLine(
-                    $"If you wish to increase deposit limit, just upgrade to an {tierInfo.NextTier.Tier} account.");
+                    $"If you wish to increase deposit limit, just upgrade to an {nextTier} account.");
                 sb.AppendLine("<br>Or use Lykke Wallet mobile app (More->Profile->Upgrade)");
             }
+
+            var sw = new Stopwatch();
+            sw.Start();
 
             var emailTemplate = await templateFormatter.FormatAsync("TierUpgradedTemplate", null,
                 "EN", new
                 {
                     Tier = tier.ToString(),
                     Year = DateTime.UtcNow.Year,
-                    Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}",
+                    Amount = $"{limit} EUR",
                     UpgradeText = sb.ToString()
                 });
 
@@ -255,6 +272,8 @@ namespace TiersMigration
             };
 
             await emailSender.SendEmailAsync(null, email, msgData);
+            sw.Stop();
+            Console.WriteLine($"email sent [{sw.ElapsedMilliseconds} msec. ]");
         }
 
         public static async Task<decimal> MigrateDepositsAsync(IContainer container, string clientId)
