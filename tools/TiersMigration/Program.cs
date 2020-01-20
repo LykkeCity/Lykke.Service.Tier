@@ -69,7 +69,7 @@ namespace TiersMigration
                 ProcessClientsAsync(items.Select(x => x.ClientId), container, sb, total).GetAwaiter().GetResult();
             });
 
-            var filename = $"tiers-migration-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            var filename = $"tiers-migration-deposits-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
 
             using (var sw = new StreamWriter(filename))
@@ -117,7 +117,6 @@ namespace TiersMigration
                     string setLimit = "-";
                     string sendEmail = "-";
                     bool isRestricted = countryRisk.Risk == null;
-                    double totalDepositAmount = 0;
                     (tier, limit, comment) = GetTierAndLimit(container, countryRisk.Risk, pd.Email.ToLowerInvariant());
 
                     // try
@@ -132,38 +131,38 @@ namespace TiersMigration
                     //     changeTier = ex.Message;
                     // }
 
-                    try
-                    {
-                        tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
-                            .GetAwaiter().GetResult();
-                        setLimit = "success";
-                    }
-                    catch (Exception ex)
-                    {
-                        setLimit = ex.Message;
-                    }
-                    //
-                    // var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
-                    //
-                    // if (totalDepositAmount > Convert.ToDecimal(limit) && !isRestricted)
+                    // try
                     // {
-                    //     if (string.IsNullOrEmpty(comment))
-                    //         comment = "Deposited amount is bigger than limit!";
-                    //     else
-                    //         comment += "; Deposited amount is bigger than limit!";
-                    //
-                    //     try
-                    //     {
-                    //         kycStatusService.ChangeKycStatusAsync(pd.Id, KycStatus.NeedToFillData,
-                    //                 $"TiersMigration script - limit reached ({totalDepositAmount} of {limit} EUR)")
-                    //             .GetAwaiter().GetResult();
-                    //         comment += "; Kyc status changed to NeedToFillData";
-                    //     }
-                    //     catch (Exception ex)
-                    //     {
-                    //         comment += $"; Error changing kyc status to NeedToFillData: {ex.Message}";
-                    //     }
+                    //     tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
+                    //         .GetAwaiter().GetResult();
+                    //     setLimit = "success";
                     // }
+                    // catch (Exception ex)
+                    // {
+                    //     setLimit = ex.Message;
+                    // }
+                    //
+                    var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
+
+                    if (totalDepositAmount > Convert.ToDecimal(limit) && !isRestricted)
+                    {
+                        if (string.IsNullOrEmpty(comment))
+                            comment = "Deposited amount is bigger than limit!";
+                        else
+                            comment += "; Deposited amount is bigger than limit!";
+
+                        try
+                        {
+                            kycStatusService.ChangeKycStatusAsync(pd.Id, KycStatus.NeedToFillData,
+                                    $"TiersMigration script - limit reached ({totalDepositAmount} of {limit} EUR)")
+                                .GetAwaiter().GetResult();
+                            comment += "; Kyc status changed to NeedToFillData";
+                        }
+                        catch (Exception ex)
+                        {
+                            comment += $"; Error changing kyc status to NeedToFillData: {ex.Message}";
+                        }
+                    }
                     //
                     // if (limit > 0)
                     // {
