@@ -92,7 +92,6 @@ namespace TiersMigration
             Console.WriteLine($"Processing {personalDatas.Count} items");
             int index = 0;
 
-
             foreach (var pd in personalDatas.AsParallel())
             {
                 try
@@ -108,8 +107,8 @@ namespace TiersMigration
                     TierInfoResponse tierInfo = tierInfoTask.Result;
                     CountryRiskResponse countryRisk = countryRiskTask.Result;
 
-                    if (tierInfo.CurrentTier.Tier != AccountTier.Beginner)
-                        continue;
+                    // if (tierInfo.CurrentTier.Tier != AccountTier.Beginner)
+                    //     continue;
 
                     AccountTier tier;
                     double limit;
