@@ -62,29 +62,29 @@ namespace TiersMigration
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,Email,Country,CountryRisk,Tier,Limit,Deposits,ChangeTier,SetLimit,SendEmail,Comment");
 
-            var ids = new List<string>()
-            {
-                "3dbd99ad-449f-4a31-b0a5-e9702b8efc15",
-                "e7e16a0d-5582-4b0b-a61b-dd3474eb1c5c",
-                "93b40db0-f4bb-44ce-a338-5370f8e27296",
-                "ad51270f-7342-4aa0-b64c-f84dd9cbc989",
-                "81b8086e-b99c-427d-bab8-085abca9e5e2",
-                "528c0279-69b9-475a-947b-e484867ef89e"
-            };
+            // var ids = new List<string>()
+            // {
+            //     "3dbd99ad-449f-4a31-b0a5-e9702b8efc15",
+            //     "e7e16a0d-5582-4b0b-a61b-dd3474eb1c5c",
+            //     "93b40db0-f4bb-44ce-a338-5370f8e27296",
+            //     "ad51270f-7342-4aa0-b64c-f84dd9cbc989",
+            //     "81b8086e-b99c-427d-bab8-085abca9e5e2",
+            //     "528c0279-69b9-475a-947b-e484867ef89e"
+            // };
 
             var webClient = new WebClient();
             var template =
                 await webClient.DownloadStringTaskAsync(
                     "https://lkefiles.blob.core.windows.net/mails/LykkeWallet/TierUpgradedTemplate.html");
 
-            ProcessClientsAsync(ids, container, sb, template).GetAwaiter().GetResult();
+            //ProcessClientsAsync(ids, container, sb, template).GetAwaiter().GetResult();
 
-            // await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
-            // {
-            //     var items = entities.ToList();
-            //
-            //     ProcessClientsAsync(items.Select(x => x.ClientId), container, sb, total).GetAwaiter().GetResult();
-            // });
+            await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
+            {
+                var items = entities.ToList();
+
+                ProcessClientsAsync(items.Select(x => x.ClientId), container, sb, template).GetAwaiter().GetResult();
+            });
 
             var filename = $"tiers-migration-emails-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
