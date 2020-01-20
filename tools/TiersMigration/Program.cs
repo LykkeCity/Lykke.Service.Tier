@@ -248,7 +248,7 @@ namespace TiersMigration
             if (nextTier != null)
             {
                 sb.AppendLine(
-                    $"If you wish to increase deposit limit, just upgrade to an {nextTier} account.");
+                    $"If you wish to increase deposit limit, just <a href='https://wallet.lykke.com/profile/kyc'>upgrade to Pro Individual account</a>.");
                 sb.AppendLine("<br>Or use Lykke Wallet mobile app (More->Profile->Upgrade)");
             }
 
