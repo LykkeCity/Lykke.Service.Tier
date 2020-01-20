@@ -17,6 +17,9 @@ using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
 using Lykke.Service.History.Client;
 using Lykke.Service.History.Contracts.Enums;
 using Lykke.Service.History.Contracts.History;
+using Lykke.Service.Kyc.Abstractions.Domain.Verification;
+using Lykke.Service.Kyc.Abstractions.Services;
+using Lykke.Service.Kyc.Client;
 using Lykke.Service.PersonalData.Client;
 using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Settings;
@@ -71,20 +74,28 @@ namespace TiersMigration
             //
             // ProcessClientsAsync(ids, container, sb).GetAwaiter().GetResult();
 
-            await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
-            {
-                var items = entities.ToList();
+            await SendEmailAsync(container,
+                new TierInfoResponse
+                {
+                    CurrentTier =
+                        new CurrentTierInfo {Asset = "EUR", MaxLimit = 10000, Tier = AccountTier.Advanced},
+                    NextTier = new TierInfo {Tier = AccountTier.ProIndividual}
+                }, AccountTier.Advanced, "debugger_ds@inbox.ru");
 
-                ProcessClientsAsync(items.Select(x => x.ClientId), container, sb).GetAwaiter().GetResult();
-            });
-
-            var filename = $"tiers-migration-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
-            Console.WriteLine($"Saving results to {filename}...");
-
-            using (var sw = new StreamWriter(filename))
-            {
-                sw.Write(sb.ToString());
-            }
+            // await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
+            // {
+            //     var items = entities.ToList();
+            //
+            //     ProcessClientsAsync(items.Select(x => x.ClientId), container, sb).GetAwaiter().GetResult();
+            // });
+            //
+            // var filename = $"tiers-migration-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            // Console.WriteLine($"Saving results to {filename}...");
+            //
+            // using (var sw = new StreamWriter(filename))
+            // {
+            //     sw.Write(sb.ToString());
+            // }
 
             Console.WriteLine("Done!");
         }
@@ -94,7 +105,7 @@ namespace TiersMigration
             var personalDataService = container.Resolve<IPersonalDataService>();
             var tierClient = container.Resolve<ITierClient>();
             var clientAccountClient = container.Resolve<IClientAccountClient>();
-            var settings = container.Resolve<AppSettings>();
+            var kycStatusService = container.Resolve<IKycStatusService>();
 
             var personalDatas = (await personalDataService.GetAsync(clientIds)).ToList();
 
@@ -118,18 +129,19 @@ namespace TiersMigration
                     AccountTier tier;
                     double limit;
                     string comment = string.Empty;
-                    string changeTier = "success";
-                    string setLimit = "success";
-                    string sendEmail = "success";
+                    string changeTier = "-";
+                    string setLimit = "-";
+                    string sendEmail = "-";
+                    bool isRestricted = countryRisk.Risk == null;
 
                     (tier, limit, comment) = GetTierAndLimit(container, countryRisk.Risk, pd.Email.ToLowerInvariant());
 
                     try
                     {
-                        // clientAccountClient.ClientAccount
-                        //     .ChangeAccountTierAsync(pd.Id, new AccountTierRequest {Tier = tier}).GetAwaiter()
-                        //     .GetResult();
-                        changeTier = "-";
+                        clientAccountClient.ClientAccount
+                            .ChangeAccountTierAsync(pd.Id, new AccountTierRequest {Tier = tier}).GetAwaiter()
+                            .GetResult();
+                        changeTier = "success";
                     }
                     catch(Exception ex)
                     {
@@ -138,9 +150,9 @@ namespace TiersMigration
 
                     try
                     {
-                        // tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
-                        //     .GetAwaiter().GetResult();
-                        setLimit = "-";
+                        tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = limit})
+                            .GetAwaiter().GetResult();
+                        setLimit = "success";
                     }
                     catch (Exception ex)
                     {
@@ -149,17 +161,32 @@ namespace TiersMigration
 
                     var totalDepositAmount = MigrateDepositsAsync(container, pd.Id).GetAwaiter().GetResult();
 
-                    if (totalDepositAmount > Convert.ToDecimal(limit) && countryRisk.Risk != null)
+                    if (totalDepositAmount > Convert.ToDecimal(limit) && !isRestricted)
                     {
-                        comment = "Deposited amount is bigger than limit!";
+                        if (string.IsNullOrEmpty(comment))
+                            comment = "Deposited amount is bigger than limit!";
+                        else
+                            comment += "; Deposited amount is bigger than limit!";
+
+                        try
+                        {
+                            kycStatusService.ChangeKycStatusAsync(pd.Id, KycStatus.NeedToFillData,
+                                    $"TiersMigration script - limit reached ({totalDepositAmount} of {limit} EUR)")
+                                .GetAwaiter().GetResult();
+                            comment += "; Kyc status changed to NeedToFillData";
+                        }
+                        catch (Exception ex)
+                        {
+                            comment += $"Error changing kyc status to NeedToFillData: {ex.Message}";
+                        }
                     }
 
                     if (limit > 0)
                     {
                         try
                         {
-                            //SendEmailAsync(container, tierInfo, tier, pd.Email).GetAwaiter().GetResult();
-                            sendEmail = "-";
+                            SendEmailAsync(container, tierInfo, tier, pd.Email).GetAwaiter().GetResult();
+                            sendEmail = "success";
                         }
                         catch (Exception ex)
                         {
@@ -171,6 +198,7 @@ namespace TiersMigration
                 }
                 catch (Exception ex)
                 {
+                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA},-,-,-,-,-,-,-,{ex.Message}");
                     Console.WriteLine($"ClientId = {pd.Id}: {ex.Message}");
                 }
             }
@@ -303,7 +331,7 @@ namespace TiersMigration
                 });
             }
 
-            //await depositsStorage.InsertOrMergeBatchAsync(deposits);
+            await depositsStorage.InsertOrMergeBatchAsync(deposits);
 
             return result;
         }
@@ -329,6 +357,13 @@ namespace TiersMigration
             builder.RegisterEmailSenderViaAzureQueueMessageProducer(ConstantReloadingManager.From(settings.ClientPersonalInfoConnString));
             builder.RegisterHistoryClient(new HistoryServiceClientSettings{ServiceUrl = settings.HistoryServiceUrl});
             builder.RegisterRateCalculatorClient(settings.RateCalculatorServiceUrl);
+            builder.Register(ctx => new KycStatusServiceClient(new KycServiceClientSettings
+                {
+                    ServiceUri = settings.KycServiceUrl,
+                    ApiKey = settings.KycApiKey
+                }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycStatusServiceClient))))
+                .As<IKycStatusService>()
+                .SingleInstance();
 
             builder.RegisterInstance(
                 AzureTableStorage<DepositOperationEntity>.Create(

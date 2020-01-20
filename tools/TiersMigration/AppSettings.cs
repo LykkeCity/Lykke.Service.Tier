@@ -14,6 +14,8 @@ namespace TiersMigration
         public string TemplateFormatterUrl { get; set; }
         public string HistoryServiceUrl { get; set; }
         public string RateCalculatorServiceUrl { get; set; }
+        public string KycServiceUrl { get; set; }
+        public string KycApiKey { get; set; }
         public Dictionary<string, double> Tier2Emails { get; set; } = new Dictionary<string, double>();
     }
 }
