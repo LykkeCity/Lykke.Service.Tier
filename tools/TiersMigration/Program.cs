@@ -181,7 +181,7 @@ namespace TiersMigration
                     //     }
                     // }
                     //
-                    if (limit > 0)
+                    if (tierInfo.CurrentTier.MaxLimit > 0)
                     {
                         try
                         {
