@@ -185,7 +185,7 @@ namespace TiersMigration
                     {
                         try
                         {
-                            SendEmailAsync(container, template, tierInfo.NextTier?.Tier, tier, limit, pd.Email).GetAwaiter().GetResult();
+                            SendEmailAsync(container, template, tierInfo.NextTier?.Tier, tierInfo.CurrentTier.Tier, limit, pd.Email).GetAwaiter().GetResult();
                             sendEmail = "success";
                         }
                         catch (Exception ex)
