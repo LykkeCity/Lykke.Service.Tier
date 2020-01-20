@@ -59,43 +59,20 @@ namespace TiersMigration
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,Email,Country,CountryRisk,Tier,Limit,Deposits,ChangeTier,SetLimit,SendEmail,Comment");
 
-            // var ids = new List<string>
-            // {
-            //     "03091a9d-e1a7-44da-941e-8baca45d3e4a",
-            //     "b778a1d2-16ba-467a-9155-8e52359fe40f",
-            //     "7bb96036-6270-467f-9602-d8488b02a25d",
-            //     "72d6b97f-9f49-436f-8686-8111b05b1435",
-            //     "87017c37-18e6-4976-b436-d832542bd7cf",
-            //     "71caf4d2-86fd-4dc5-baf2-eb1c7732a31b",
-            //     "c738c1b0-1f55-42fa-a940-ee41682b941e",
-            //     "9db7cb0b-3324-4ed1-9ef7-38ecea7512d7",
-            //     "3ef8a311-0c3d-4ece-b091-34f675a61516"
-            // };
-            //
-            // ProcessClientsAsync(ids, container, sb).GetAwaiter().GetResult();
+            await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
+            {
+                var items = entities.ToList();
 
-            await SendEmailAsync(container,
-                new TierInfoResponse
-                {
-                    CurrentTier =
-                        new CurrentTierInfo {Asset = "EUR", MaxLimit = 10000, Tier = AccountTier.Advanced},
-                    NextTier = new TierInfo {Tier = AccountTier.ProIndividual}
-                }, AccountTier.Advanced, "debugger_ds@inbox.ru");
+                ProcessClientsAsync(items.Select(x => x.ClientId), container, sb).GetAwaiter().GetResult();
+            });
 
-            // await kycStatusesStorage.GetDataByChunksAsync("Ok", entities =>
-            // {
-            //     var items = entities.ToList();
-            //
-            //     ProcessClientsAsync(items.Select(x => x.ClientId), container, sb).GetAwaiter().GetResult();
-            // });
-            //
-            // var filename = $"tiers-migration-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
-            // Console.WriteLine($"Saving results to {filename}...");
-            //
-            // using (var sw = new StreamWriter(filename))
-            // {
-            //     sw.Write(sb.ToString());
-            // }
+            var filename = $"tiers-migration-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            Console.WriteLine($"Saving results to {filename}...");
+
+            using (var sw = new StreamWriter(filename))
+            {
+                sw.Write(sb.ToString());
+            }
 
             Console.WriteLine("Done!");
         }
@@ -177,7 +154,7 @@ namespace TiersMigration
                         }
                         catch (Exception ex)
                         {
-                            comment += $"Error changing kyc status to NeedToFillData: {ex.Message}";
+                            comment += $"; Error changing kyc status to NeedToFillData: {ex.Message}";
                         }
                     }
 
