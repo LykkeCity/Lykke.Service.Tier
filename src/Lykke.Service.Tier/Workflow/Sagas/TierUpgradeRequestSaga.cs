@@ -85,7 +85,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
                         bool noAmountTemplate = tierInfo.CurrentTier.MaxLimit == 0;
                         string upgradeTemplate =
-                            tierInfo.NextTier != null && tierInfo.NextTier.Tier == AccountTier.ProIndividual
+                            tierInfo.CurrentTier.Tier == AccountTier.Advanced
                                 ? "TierUpgradedToProTemplate"
                                 : "TierUpgradedTemplate";
 
@@ -95,6 +95,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                                 Tier = evt.Tier.ToString(),
                                 Year = DateTime.UtcNow.Year,
                                 Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}"
+                                //TODO: remove when TierUpgradedTemplate will be updated (@[UpgradeText] removed)
+                                UpgradeText = string.Empty
                             });
 
                         if (pushEnabled)
