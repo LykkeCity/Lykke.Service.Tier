@@ -94,7 +94,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                             {
                                 Tier = evt.Tier.ToString(),
                                 Year = DateTime.UtcNow.Year,
-                                Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}"
+                                Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}",
                                 //TODO: remove when TierUpgradedTemplate will be updated (@[UpgradeText] removed)
                                 UpgradeText = string.Empty
                             });
