@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Lykke.Cqrs;
 using Lykke.Messages.Email.MessageData;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.EmailSender;
 using Lykke.Service.Kyc.Abstractions.Domain.Documents;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
@@ -81,23 +82,20 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     case KycStatus.Ok:
                         var tierInfo = await _tiersService.GetClientTierInfoAsync(evt.ClientId, clientAcc.Tier, personalData.CountryFromPOA);
 
-                        var sb = new StringBuilder();
                         bool noAmountTemplate = tierInfo.CurrentTier.MaxLimit == 0;
+                        string upgradeTemplate =
+                            tierInfo.CurrentTier.Tier == AccountTier.Advanced
+                                ? "TierUpgradedToProTemplate"
+                                : "TierUpgradedTemplate";
 
-                        if (tierInfo.NextTier != null)
-                        {
-                            sb.AppendLine(
-                                $"If you wish to increase deposit limit, just upgrade to an {tierInfo.NextTier.Tier} account.");
-                            sb.AppendLine("<br>Or use Lykke Wallet mobile app (More->Profile->Upgrade)");
-                        }
-
-                        emailTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "TierUpgradedNoAmountTemplate" : "TierUpgradedTemplate", clientAcc.PartnerId,
+                        emailTemplateTask = _templateFormatter.FormatAsync(noAmountTemplate ? "TierUpgradedNoAmountTemplate" : upgradeTemplate, clientAcc.PartnerId,
                             "EN", new
                             {
                                 Tier = evt.Tier.ToString(),
                                 Year = DateTime.UtcNow.Year,
                                 Amount = $"{tierInfo.CurrentTier.MaxLimit} {tierInfo.CurrentTier.Asset}",
-                                UpgradeText = sb.ToString()
+                                //TODO: remove when TierUpgradedTemplate will be updated (@[UpgradeText] removed)
+                                UpgradeText = string.Empty
                             });
 
                         if (pushEnabled)
