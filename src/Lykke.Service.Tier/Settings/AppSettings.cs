@@ -15,5 +15,6 @@ namespace Lykke.Service.Tier.Settings
         public PersonalDataServiceClientSettings PersonalDataServiceClient { get; set; }
         public TemplateFormatterServiceClientSettings TemplateFormatterServiceClient { get; set; }
         public KycServiceClientSettings KycServiceClient { get; set; }
+        public RateCalculatorServiceClient RateCalculatorServiceClient { get; set; }
     }
 }

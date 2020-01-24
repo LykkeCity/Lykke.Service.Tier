@@ -34,6 +34,12 @@ TierService:
   PushLimitsReachedAt:
       settings-key: TierService-PushLimitsReachedAt
       types: [JsonArray]
+  Rabbit:
+    ConnectionString:
+      settings-key: MatchingEngineRabbitMqConnectionString
+      types: [RabbitMq]
+    SpotEventsExchangeName:
+      settings-key: MatchingEngineSpotEventsExchange
 
   Cqrs:
     RabbitConnectionString:
@@ -71,4 +77,7 @@ KycServiceClient:
     settings-key: KycService-ApiKey
   ServiceUri:
     settings-key: KycServiceUrl
+RateCalculatorServiceClient:
+  ServiceUrl:
+    settings-key: RateCalculatorServiceUrl
 

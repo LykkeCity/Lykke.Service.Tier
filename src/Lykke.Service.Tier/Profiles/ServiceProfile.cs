@@ -1,7 +1,6 @@
 using AutoMapper;
 using JetBrains.Annotations;
 using Lykke.Service.ClientAccount.Client.Models;
-using Lykke.Service.Limitations.Client.Events;
 using Lykke.Service.Tier.AzureRepositories;
 using Lykke.Service.Tier.Client.Models;
 using Lykke.Service.Tier.Client.Models.Requests;
@@ -9,6 +8,7 @@ using Lykke.Service.Tier.Client.Models.Responses;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Deposits;
 using Lykke.Service.Tier.Domain.Questionnaire;
+using Lykke.Service.Tier.Workflow.Events;
 
 namespace Lykke.Service.Tier.Profiles
 {
@@ -19,7 +19,7 @@ namespace Lykke.Service.Tier.Profiles
         {
             CreateMap<ITierUpgradeRequest, TierUpgradeRequestResponse>(MemberList.Destination);
             CreateMap<TierUpgradeRequestEntity, TierUpgradeRequestResponse>(MemberList.Destination);
-            CreateMap<ClientDepositEvent, DepositOperation>(MemberList.Destination)
+            CreateMap<ClientDepositedEvent, DepositOperation>(MemberList.Destination)
                 .ForMember(x => x.Date, o => o.MapFrom(x=>x.Timestamp));
             CreateMap<ILimit, LimitResponse>(MemberList.Destination);
             CreateMap<AccountTier, TierModel>(MemberList.Destination);

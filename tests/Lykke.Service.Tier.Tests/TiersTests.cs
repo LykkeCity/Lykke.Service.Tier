@@ -53,25 +53,6 @@ namespace Lykke.Service.Tier.Tests
         }
 
         [Fact]
-        public async Task TierInfo_JustRegisteredClient_Pending_SubmitedToApprentice_LowRisk()
-        {
-            var requests = new List<ITierUpgradeRequest>
-            {
-                new TierUpgradeRequestEntity
-                {
-                    Tier = AccountTier.Advanced,
-                    KycStatus = KycStatus.Pending
-                }
-            };
-
-            InitTest(requests);
-            var info = await _tierService.GetClientTierInfoAsync(ClientId, AccountTier.Beginner, LowMidRiskCountry);
-
-            CheckResult(info, AccountTier.Beginner, AccountTier.ProIndividual,
-                AccountTier.Advanced, KycStatus.Pending.ToString());
-        }
-
-        [Fact]
         public async Task TierInfo_JustRegisteredClient_Pending_SubmitedToProIndividual_HighRisk()
         {
             var requests = new List<ITierUpgradeRequest>

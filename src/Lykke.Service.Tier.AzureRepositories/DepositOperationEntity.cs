@@ -7,6 +7,7 @@ namespace Lykke.Service.Tier.AzureRepositories
     public class DepositOperationEntity : AzureTableEntity, IDepositOperation
     {
         public string ClientId { get; set; }
+        public string FromClientId { get; set; }
         public string OperationId { get; set; }
         public string Asset { get; set; }
         public double Amount { get; set; }
@@ -25,6 +26,7 @@ namespace Lykke.Service.Tier.AzureRepositories
                 PartitionKey = GeneratePk(operation.ClientId),
                 RowKey = GenerateRk(operation.OperationId),
                 ClientId = operation.ClientId,
+                FromClientId = operation.FromClientId,
                 OperationId = operation.OperationId,
                 Asset = operation.Asset,
                 Amount = operation.Amount,

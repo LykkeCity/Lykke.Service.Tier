@@ -2,8 +2,10 @@
 using Autofac;
 using JetBrains.Annotations;
 using Lykke.Sdk;
+using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
 using Lykke.Service.Tier.DomainServices;
+using Lykke.Service.Tier.RabbitSubscribers;
 using Lykke.Service.Tier.Services;
 using Lykke.Service.Tier.Settings;
 using Lykke.SettingsReader;
@@ -66,6 +68,25 @@ namespace Lykke.Service.Tier.Modules
 
             builder.RegisterType<QuestionnaireService>()
                 .As<IQuestionnaireService>()
+                .SingleInstance();
+
+            builder.RegisterType<CashInSubscriber>()
+                .As<IStartable>()
+                .AutoActivate()
+                .PropertiesAutowired(PropertyWiringOptions.AllowCircularDependencies)
+                .WithParameter("connectionString", _appSettings.CurrentValue.TierService.Rabbit.ConnectionString)
+                .WithParameter("exchangeName", _appSettings.CurrentValue.TierService.Rabbit.SpotEventsExchangeName)
+                .SingleInstance();
+
+            builder.RegisterType<CashTransferSubscriber>()
+                .As<IStartable>()
+                .AutoActivate()
+                .WithParameter("connectionString", _appSettings.CurrentValue.TierService.Rabbit.ConnectionString)
+                .WithParameter("exchangeName", _appSettings.CurrentValue.TierService.Rabbit.SpotEventsExchangeName)
+                .SingleInstance();
+
+            builder.RegisterType<CurrencyConverter>()
+                .As<ICurrencyConverter>()
                 .SingleInstance();
         }
     }
