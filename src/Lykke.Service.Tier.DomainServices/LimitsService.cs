@@ -1,11 +1,9 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.ClientAccount.Client.Models;
-using Lykke.Service.Limitations.Client.Events;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Deposits;
 using Lykke.Service.Tier.Domain.Repositories;
@@ -21,7 +19,6 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly IDatabase _database;
         private readonly ILimitsRepository _limitsRepository;
         private readonly IClientDepositsRepository _clientDepositsRepository;
-        private readonly IMapper _mapper;
         private readonly ISettingsService _settingsService;
         private readonly ILog _log;
 
@@ -30,7 +27,6 @@ namespace Lykke.Service.Tier.DomainServices
             IDatabase database,
             ILimitsRepository limitsRepository,
             IClientDepositsRepository clientDepositsRepository,
-            IMapper mapper,
             ISettingsService settingsService,
             ILogFactory logFactory
             )
@@ -39,7 +35,6 @@ namespace Lykke.Service.Tier.DomainServices
             _database = database;
             _limitsRepository = limitsRepository;
             _clientDepositsRepository = clientDepositsRepository;
-            _mapper = mapper;
             _settingsService = settingsService;
             _log = logFactory.CreateLog(this);
         }
@@ -77,13 +72,9 @@ namespace Lykke.Service.Tier.DomainServices
             return result;
         }
 
-        public async Task SaveDepositOperationAsync(ClientDepositEvent evt)
+        public Task SaveDepositOperationAsync(IDepositOperation deposit)
         {
-            var operation = _mapper.Map<DepositOperation>(evt);
-
-            await _clientDepositsRepository.AddAsync(operation);
-
-            //TODO: add to redis
+            return _clientDepositsRepository.AddAsync(deposit);
         }
 
         public Task DeleteDepositOperationAsync(string clientId, string operationId)

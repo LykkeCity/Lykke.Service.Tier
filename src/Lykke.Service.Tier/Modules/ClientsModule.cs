@@ -8,6 +8,7 @@ using Lykke.Service.Kyc.Client;
 using Lykke.Service.PersonalData.Client;
 using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Settings;
+using Lykke.Service.RateCalculator.Client;
 using Lykke.Service.TemplateFormatter;
 using Lykke.Service.Tier.Settings;
 using Lykke.SettingsReader;
@@ -61,6 +62,8 @@ namespace Lykke.Service.Tier.Modules
                     }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycDocumentsServiceV2Client))))
                 .As<IKycDocumentsService>()
                 .SingleInstance();
+
+            builder.RegisterRateCalculatorClient(_appSettings.CurrentValue.RateCalculatorServiceClient.ServiceUrl);
         }
     }
 }

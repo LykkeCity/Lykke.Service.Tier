@@ -1,8 +1,8 @@
 using System;
 
-namespace Lykke.Service.Tier.Domain.Deposits
+namespace Lykke.Service.Tier.Workflow.Events
 {
-    public class DepositOperation : IDepositOperation
+    public class ClientDepositedEvent
     {
         public string ClientId { get; set; }
         public string FromClientId { get; set; }
@@ -12,6 +12,6 @@ namespace Lykke.Service.Tier.Domain.Deposits
         public string BaseAsset { get; set; }
         public double BaseVolume { get; set; }
         public string OperationType { get; set; }
-        public DateTime Date { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 }
