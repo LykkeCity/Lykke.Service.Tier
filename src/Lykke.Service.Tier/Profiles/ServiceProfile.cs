@@ -21,6 +21,7 @@ namespace Lykke.Service.Tier.Profiles
             CreateMap<TierUpgradeRequestEntity, TierUpgradeRequestResponse>(MemberList.Destination);
             CreateMap<ClientDepositedEvent, DepositOperation>(MemberList.Destination)
                 .ForMember(x => x.Date, o => o.MapFrom(x=>x.Timestamp));
+            CreateMap<DepositOperation, ClientDepositOperation>(MemberList.Destination);
             CreateMap<ILimit, LimitResponse>(MemberList.Destination);
             CreateMap<AccountTier, TierModel>(MemberList.Destination);
             CreateMap<QuestionEntity, Question>(MemberList.Destination)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
@@ -99,6 +100,13 @@ namespace Lykke.Service.Tier.DomainServices
         public Task<ILimit> GetLimitAsync(string clientId)
         {
             return _limitsRepository.GetAsync(clientId);
+        }
+
+        public async Task<IEnumerable<IDepositOperation>> GetClientDepositsAsync(string clientId)
+        {
+            var monthAgo = DateTime.UtcNow.AddMonths(-1);
+            var depoists = await _clientDepositsRepository.GetDepositsAsync(clientId);
+            return depoists.Where(x => x.Date >= monthAgo);
         }
     }
 }
