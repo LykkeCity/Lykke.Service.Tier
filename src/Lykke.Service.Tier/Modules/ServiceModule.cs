@@ -73,7 +73,6 @@ namespace Lykke.Service.Tier.Modules
             builder.RegisterType<CashInSubscriber>()
                 .As<IStartable>()
                 .AutoActivate()
-                .PropertiesAutowired(PropertyWiringOptions.AllowCircularDependencies)
                 .WithParameter("connectionString", _appSettings.CurrentValue.TierService.Rabbit.ConnectionString)
                 .WithParameter("exchangeName", _appSettings.CurrentValue.TierService.Rabbit.SpotEventsExchangeName)
                 .SingleInstance();

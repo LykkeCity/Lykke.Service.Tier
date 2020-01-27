@@ -67,7 +67,6 @@ namespace Lykke.Service.Tier.RabbitSubscribers
         private async Task ProcessMessageAsync(CashTransferEvent item)
         {
             var transfer = item.CashTransfer;
-            Console.WriteLine(item.ToJson());
             if (await IsTransferBetweenClientWalletsAsync(transfer.FromWalletId, transfer.ToWalletId))
             {
                 _log.Info("Skip transfer between client wallets", context: item.ToJson());
