@@ -86,7 +86,7 @@ namespace Lykke.Service.Tier.DomainServices
         public async Task<double> GetClientDepositAmountAsync(string clientId, AccountTier tier)
         {
             //TODO: get from redis
-            var monthAgo = DateTime.UtcNow.AddMonths(-1);
+            var monthAgo = DateTime.UtcNow.AddDays(-30);
             var deposits = await _clientDepositsRepository.GetDepositsAsync(clientId);
 
             return deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
@@ -104,7 +104,7 @@ namespace Lykke.Service.Tier.DomainServices
 
         public async Task<IEnumerable<IDepositOperation>> GetClientDepositsAsync(string clientId)
         {
-            var monthAgo = DateTime.UtcNow.AddMonths(-1);
+            var monthAgo = DateTime.UtcNow.AddDays(-30);
             var depoists = await _clientDepositsRepository.GetDepositsAsync(clientId);
             return depoists.Where(x => x.Date >= monthAgo);
         }
