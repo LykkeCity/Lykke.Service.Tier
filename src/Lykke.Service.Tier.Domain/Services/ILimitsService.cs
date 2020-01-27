@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lykke.Service.ClientAccount.Client.Models;
 using Lykke.Service.Tier.Domain.Deposits;
@@ -13,5 +14,6 @@ namespace Lykke.Service.Tier.Domain.Services
         Task<double> GetClientDepositAmountAsync(string clientId, AccountTier tier);
         Task AddLimitAsync(string clientId, double limit, string asset);
         Task<ILimit> GetLimitAsync(string clientId);
+        Task<IEnumerable<IDepositOperation>> GetClientDepositsAsync(string clientId);
     }
 }

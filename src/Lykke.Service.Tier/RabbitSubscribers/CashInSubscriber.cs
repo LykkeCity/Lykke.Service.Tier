@@ -4,15 +4,21 @@ using Autofac;
 using Common;
 using Common.Log;
 using Lykke.Common.Log;
+using Lykke.Cqrs;
 using Lykke.MatchingEngine.Connector.Models.Events;
 using Lykke.MatchingEngine.Connector.Models.Events.Common;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
+using Lykke.Service.Tier.Contract;
+using Lykke.Service.Tier.Domain;
+using Lykke.Service.Tier.Workflow.Events;
 
 namespace Lykke.Service.Tier.RabbitSubscribers
 {
     public sealed class CashInSubscriber : IStartable, IDisposable
     {
+        private readonly ICurrencyConverter _currencyConverter;
+        private readonly ICqrsEngine _cqrsEngine;
         private readonly ILogFactory _logFactory;
         private readonly string _connectionString;
         private readonly string _exchangeName;
@@ -20,11 +26,15 @@ namespace Lykke.Service.Tier.RabbitSubscribers
         private readonly ILog _log;
 
         public CashInSubscriber(
+            ICurrencyConverter currencyConverter,
+            ICqrsEngine cqrsEngine,
             ILogFactory logFactory,
             string connectionString,
             string exchangeName
             )
         {
+            _currencyConverter = currencyConverter;
+            _cqrsEngine = cqrsEngine;
             _logFactory = logFactory;
             _log = _logFactory.CreateLog(this);
             _connectionString = connectionString;
@@ -49,10 +59,27 @@ namespace Lykke.Service.Tier.RabbitSubscribers
                 .Start();
         }
 
-        private Task ProcessMessageAsync(CashInEvent item)
+        private async Task ProcessMessageAsync(CashInEvent item)
         {
             _log.Info("CashIn event", context: item.ToJson());
-            return Task.CompletedTask;
+
+            double volume = Convert.ToDouble(item.CashIn.Volume);
+            (double convertedVolume, string assetId) = await _currencyConverter.ConvertAsync(item.CashIn.AssetId, volume);
+
+            if (convertedVolume == 0)
+                return;
+
+            _cqrsEngine.PublishEvent(new ClientDepositedEvent
+            {
+                ClientId = item.CashIn.WalletId,
+                OperationId = item.Header.MessageId ?? item.Header.RequestId,
+                Asset = item.CashIn.AssetId,
+                Amount = volume,
+                BaseAsset = assetId,
+                BaseVolume = convertedVolume,
+                OperationType = "CashIn",
+                Timestamp = item.Header.Timestamp
+            }, TierBoundedContext.Name);
         }
 
         #region Dispose
