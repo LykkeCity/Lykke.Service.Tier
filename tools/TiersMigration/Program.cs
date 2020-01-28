@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Autofac;
@@ -50,35 +49,34 @@ namespace TiersMigration
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,OperationId,OperationType,Date,Amount,Base Amount,Comment");
 
-            await depositsStorage.GetDataByChunksAsync(entities =>
+            var deposits = await depositsStorage.GetDataAsync();
+
+            Console.WriteLine($"Processing {deposits.Count} deposits");
+
+            foreach (var item in deposits)
             {
-                var items = entities.ToList();
+                var operation = await operationsClient.Get(Guid.Parse(item.OperationId));
 
-                Console.WriteLine($"Processing {items.Count} client deposits...");
-                foreach (var item in items)
+                if (operation != null)
                 {
-                    var operation = operationsClient.Get(Guid.Parse(item.OperationId)).GetAwaiter().GetResult();
-
-                    if (operation != null)
+                    if (operation.Context["SourceWalletId"] != null)
                     {
-                        if (operation.Context["SourceWalletId"] != null)
+                        var sourceWalletId = (string)operation.Context["SourceWalletId"];
+                        var walletId = (string)operation.Context["WalletId"];
+
+                        var sourceClientIdTask = clientAccountClient.Wallets.GetClientIdByWalletAsync(sourceWalletId);
+                        var clientIdTask = clientAccountClient.Wallets.GetClientIdByWalletAsync(walletId);
+
+                        Task.WhenAll(sourceClientIdTask, clientIdTask).GetAwaiter().GetResult();
+
+                        if (sourceClientIdTask.Result.ClientId == clientIdTask.Result.ClientId)
                         {
-                            var sourceWalletId = (string)operation.Context["SourceWalletId"];
-                            var walletId = (string)operation.Context["WalletId"];
-
-                            var sourceClientIdTask = clientAccountClient.Wallets.GetClientIdByWalletAsync(sourceWalletId);
-                            var clientIdTask = clientAccountClient.Wallets.GetClientIdByWalletAsync(walletId);
-
-                            Task.WhenAll(sourceClientIdTask, clientIdTask).GetAwaiter().GetResult();
-
-                            if (sourceClientIdTask.Result.ClientId == clientIdTask.Result.ClientId)
-                            {
-                                sb.AppendLine($"{item.ClientId},{item.OperationId},{item.OperationType},{item.Date},{item.Amount} {item.Asset},{item.BaseVolume} {item.BaseAsset},transfer between wallets -> delete");
-                            }
+                            sb.AppendLine($"{item.ClientId},{item.OperationId},{item.OperationType},{item.Date},{item.Amount} {item.Asset},{item.BaseVolume} {item.BaseAsset},transfer between wallets -> delete");
+                            await depositsStorage.DeleteIfExistAsync(item.ClientId, item.OperationId);
                         }
                     }
                 }
-            });
+            }
 
             var filename = $"deposit-fixes-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
