@@ -1,21 +1,22 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
-using Lykke.Service.ClientAccount.Client.Models.Request.Settings;
 using Lykke.Service.ClientAccount.Client.Models.Response.ClientAccountInformation;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Kyc.Abstractions.Services;
-using Lykke.Service.Limitations.Client.Events;
 using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Contract.Models;
 using Lykke.Service.PushNotifications.Contract;
 using Lykke.Service.PushNotifications.Contract.Commands;
 using Lykke.Service.PushNotifications.Contract.Enums;
 using Lykke.Service.TemplateFormatter.Client;
+using Lykke.Service.Tier.Domain.Deposits;
 using Lykke.Service.Tier.Domain.Services;
 using Lykke.Service.Tier.Domain.Settings;
+using Lykke.Service.Tier.Workflow.Events;
 
 namespace Lykke.Service.Tier.Workflow.Sagas
 {
@@ -28,6 +29,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ITemplateFormatter _templateFormatter;
         private readonly IKycStatusService _kycStatusService;
         private readonly ITierUpgradeService _tierUpgradeService;
+        private readonly IMapper _mapper;
 
         public ClientDepositsSaga(
             IClientAccountClient clientAccountClient,
@@ -36,7 +38,8 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             ISettingsService settingsService,
             ITemplateFormatter templateFormatter,
             IKycStatusService kycStatusService,
-            ITierUpgradeService tierUpgradeService
+            ITierUpgradeService tierUpgradeService,
+            IMapper mapper
             )
         {
             _clientAccountClient = clientAccountClient;
@@ -46,9 +49,10 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _templateFormatter = templateFormatter;
             _kycStatusService = kycStatusService;
             _tierUpgradeService = tierUpgradeService;
+            _mapper = mapper;
         }
 
-        public async Task Handle(ClientDepositEvent evt, ICommandSender commandSender)
+        public async Task Handle(ClientDepositedEvent evt, ICommandSender commandSender)
         {
             var clientAccountTask = _clientAccountClient.ClientAccountInformation.GetByIdAsync(evt.ClientId);
             var pdTask = _personalDataService.GetAsync(evt.ClientId);
@@ -61,7 +65,7 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             if (clientAccount == null)
                 return;
 
-            await _limitsService.SaveDepositOperationAsync(evt);
+            await _limitsService.SaveDepositOperationAsync(_mapper.Map<DepositOperation>(evt));
 
             LimitSettings currentLimitSettings = await _limitsService.GetClientLimitSettingsAsync(evt.ClientId, clientAccount.Tier, pd.CountryFromPOA);
 
@@ -70,39 +74,10 @@ namespace Lykke.Service.Tier.Workflow.Sagas
 
             double checkAmount = await _limitsService.GetClientDepositAmountAsync(evt.ClientId, clientAccount.Tier);
 
-            if (Math.Abs(checkAmount - currentLimitSettings.MaxLimit.Value) < 0.01)
-            {
-                await _clientAccountClient.ClientSettings.SetCashOutBlockAsync(new CashOutBlockRequest
-                {
-                    ClientId = evt.ClientId, CashOutBlocked = false, TradesBlocked = false
-                });
-            }
-
             if (checkAmount > currentLimitSettings.MaxLimit.Value)
             {
-                var requests = await _tierUpgradeService.GetByClientAsync(evt.ClientId);
-
-                var kycStatus = KycStatus.NeedToFillData;
-
-                if (requests.Any())
-                {
-                    if (requests.Any(x => x.KycStatus == KycStatus.Pending))
-                    {
-                        kycStatus = KycStatus.Pending;
-                    }
-
-                    if (requests.Any(x => x.KycStatus == KycStatus.Rejected))
-                    {
-                        kycStatus = KycStatus.NeedToFillData;
-                    }
-                }
-                else
-                {
-                    kycStatus = KycStatus.NeedToFillData;
-                }
-
+                var kycStatus = await GetKycStatusAsync(evt.ClientId);
                 await _kycStatusService.ChangeKycStatusAsync(evt.ClientId, kycStatus, $"{nameof(ClientDepositsSaga)} - limit reached ({checkAmount} of {currentLimitSettings.MaxLimit.Value} {_settingsService.GetDefaultAsset()})");
-
             }
 
             if (checkAmount <= currentLimitSettings.MaxLimit.Value)
@@ -135,6 +110,32 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                     }, PushNotificationsBoundedContext.Name);
                 }
             }
+        }
+
+        private async Task<KycStatus> GetKycStatusAsync(string clientId)
+        {
+            var requests = await _tierUpgradeService.GetByClientAsync(clientId);
+
+            var kycStatus = KycStatus.NeedToFillData;
+
+            if (requests.Any())
+            {
+                if (requests.Any(x => x.KycStatus == KycStatus.Pending))
+                {
+                    kycStatus = KycStatus.Pending;
+                }
+
+                if (requests.Any(x => x.KycStatus == KycStatus.Rejected))
+                {
+                    kycStatus = KycStatus.NeedToFillData;
+                }
+            }
+            else
+            {
+                kycStatus = KycStatus.NeedToFillData;
+            }
+
+            return kycStatus;
         }
     }
 }

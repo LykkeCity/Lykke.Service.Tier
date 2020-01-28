@@ -23,5 +23,8 @@ namespace Lykke.Service.Tier.Client
 
         /// <summary>Api for questionnaire</summary>
         IQuestionnaireApi Questionnaire { get; }
+
+        /// <summary>Api for deposits</summary>
+        IDepositsApi Deposits { get; }
     }
 }

@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.ClientAccount.Client.Models;
-using Lykke.Service.Limitations.Client.Events;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Deposits;
 using Lykke.Service.Tier.Domain.Repositories;
@@ -21,7 +20,6 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly IDatabase _database;
         private readonly ILimitsRepository _limitsRepository;
         private readonly IClientDepositsRepository _clientDepositsRepository;
-        private readonly IMapper _mapper;
         private readonly ISettingsService _settingsService;
         private readonly ILog _log;
 
@@ -30,7 +28,6 @@ namespace Lykke.Service.Tier.DomainServices
             IDatabase database,
             ILimitsRepository limitsRepository,
             IClientDepositsRepository clientDepositsRepository,
-            IMapper mapper,
             ISettingsService settingsService,
             ILogFactory logFactory
             )
@@ -39,7 +36,6 @@ namespace Lykke.Service.Tier.DomainServices
             _database = database;
             _limitsRepository = limitsRepository;
             _clientDepositsRepository = clientDepositsRepository;
-            _mapper = mapper;
             _settingsService = settingsService;
             _log = logFactory.CreateLog(this);
         }
@@ -77,13 +73,9 @@ namespace Lykke.Service.Tier.DomainServices
             return result;
         }
 
-        public async Task SaveDepositOperationAsync(ClientDepositEvent evt)
+        public Task SaveDepositOperationAsync(IDepositOperation deposit)
         {
-            var operation = _mapper.Map<DepositOperation>(evt);
-
-            await _clientDepositsRepository.AddAsync(operation);
-
-            //TODO: add to redis
+            return _clientDepositsRepository.AddAsync(deposit);
         }
 
         public Task DeleteDepositOperationAsync(string clientId, string operationId)
@@ -94,7 +86,7 @@ namespace Lykke.Service.Tier.DomainServices
         public async Task<double> GetClientDepositAmountAsync(string clientId, AccountTier tier)
         {
             //TODO: get from redis
-            var monthAgo = DateTime.UtcNow.AddMonths(-1);
+            var monthAgo = DateTime.UtcNow.AddDays(-30);
             var deposits = await _clientDepositsRepository.GetDepositsAsync(clientId);
 
             return deposits.Where(x => x.Date >= monthAgo).Sum(x =>x.BaseVolume);
@@ -108,6 +100,13 @@ namespace Lykke.Service.Tier.DomainServices
         public Task<ILimit> GetLimitAsync(string clientId)
         {
             return _limitsRepository.GetAsync(clientId);
+        }
+
+        public async Task<IEnumerable<IDepositOperation>> GetClientDepositsAsync(string clientId)
+        {
+            var monthAgo = DateTime.UtcNow.AddDays(-30);
+            var depoists = await _clientDepositsRepository.GetDepositsAsync(clientId);
+            return depoists.Where(x => x.Date >= monthAgo);
         }
     }
 }

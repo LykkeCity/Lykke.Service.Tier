@@ -1,8 +1,8 @@
 using System;
 
-namespace Lykke.Service.Tier.Domain.Deposits
+namespace Lykke.Service.Tier.Client.Models.Responses
 {
-    public class DepositOperation : IDepositOperation
+    public class ClientDepositOperation
     {
         public string ClientId { get; set; }
         public string FromClientId { get; set; }

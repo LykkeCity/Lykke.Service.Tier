@@ -18,6 +18,7 @@ using Lykke.Service.PushNotifications.Contract.Commands;
 using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain.Events;
 using Lykke.Service.Tier.Settings;
+using Lykke.Service.Tier.Workflow.Events;
 using Lykke.Service.Tier.Workflow.Projections;
 using Lykke.Service.Tier.Workflow.Sagas;
 using Lykke.SettingsReader;
@@ -79,7 +80,10 @@ namespace Lykke.Service.Tier.Modules
                     Register.EventInterceptors(new DefaultEventLoggingInterceptor(ctx.Resolve<ILogFactory>())),
 
                     Register.BoundedContext(TierBoundedContext.Name)
-                        .PublishingEvents(typeof (TierUpgradeRequestChangedEvent))
+                        .PublishingEvents(
+                            typeof (TierUpgradeRequestChangedEvent),
+                            typeof (ClientDepositedEvent)
+                            )
                         .With(selfRoute)
 
                         .ListeningEvents(typeof(KycStatusChangedEvent))
@@ -98,8 +102,8 @@ namespace Lykke.Service.Tier.Modules
                         .ProcessingOptions(commandsRoute).MultiThreaded(2).QueueCapacity(256),
 
                     Register.Saga<ClientDepositsSaga>("client-deposits-saga")
-                        .ListeningEvents(typeof(ClientDepositEvent))
-                        .From(LimitationsBoundedContext.Name).On(eventsRoute)
+                        .ListeningEvents(typeof(ClientDepositedEvent))
+                        .From(TierBoundedContext.Name).On(selfRoute)
                         .PublishingCommands(typeof(TextNotificationCommand)).To(PushNotificationsBoundedContext.Name)
                         .With(commandsRoute)
                         .ProcessingOptions(commandsRoute).MultiThreaded(2).QueueCapacity(256)
