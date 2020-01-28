@@ -52,9 +52,11 @@ namespace TiersMigration
             var deposits = await depositsStorage.GetDataAsync();
 
             Console.WriteLine($"Processing {deposits.Count} deposits");
+            var index = 1;
 
             foreach (var item in deposits)
             {
+                Console.WriteLine($"Processing {index++} of {deposits.Count} deposits");
                 var operation = await operationsClient.Get(Guid.Parse(item.OperationId));
 
                 if (operation != null)
