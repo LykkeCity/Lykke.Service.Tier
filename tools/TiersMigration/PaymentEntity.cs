@@ -9,5 +9,6 @@ namespace TiersMigration
         public string OperationId => RowKey;
 
         public string PaymentSystem { get; set; }
+        public string Status { get; set; }
     }
 }

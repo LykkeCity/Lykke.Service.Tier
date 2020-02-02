@@ -65,8 +65,8 @@ namespace TiersMigration
                 {
                     if (operation.Type == OperationType.Cashout)
                     {
-                        sb.AppendLine($"{item.ClientId},{item.OperationId},{item.OperationType},{item.Date},{item.Amount} {item.Asset},{item.BaseVolume} {item.BaseAsset},{operation.Type} -> delete");
-                        //await depositsStorage.DeleteIfExistAsync(item.ClientId, item.OperationId);
+                        await depositsStorage.DeleteIfExistAsync(item.ClientId, item.OperationId);
+                        sb.AppendLine($"{item.ClientId},{item.OperationId},{item.OperationType},{item.Date},{item.Amount} {item.Asset},{item.BaseVolume} {item.BaseAsset},{operation.Type} -> deleted");
                     }
                 }
                 else
@@ -74,8 +74,15 @@ namespace TiersMigration
                     if (item.OperationType == "CardCashIn")
                     {
                         var payment = await paymentsStorage.GetDataAsync(item.ClientId, item.OperationId);
-                        if (payment != null && payment.PaymentSystem == "Swift")
+                        if (payment != null && payment.PaymentSystem == "Swift" && payment.Status != "NotifyDeclined")
+                        {
+                            await depositsStorage.MergeAsync(item.ClientId, item.OperationId, entity =>
+                            {
+                                entity.OperationType = "SwiftTransfer";
+                                return entity;
+                            });
                             sb.AppendLine($"{item.ClientId},{item.OperationId},{item.OperationType},{item.Date},{item.Amount} {item.Asset},{item.BaseVolume} {item.BaseAsset},operationType -> SwiftTransfer");
+                        }
                     }
                 }
             }
