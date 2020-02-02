@@ -101,7 +101,7 @@ namespace Lykke.Service.Tier.RabbitSubscribers
 
             if (fiatCurrencies.Contains(cashTransfer.AssetId))
             {
-                return cashTransfer.Fees != null ? "CardCashIn" : "SwiftTransfer";
+                return cashTransfer.Fees != null && cashTransfer.Fees.Any() ? "CardCashIn" : "SwiftTransfer";
             }
 
             return "CryptoCashIn";
