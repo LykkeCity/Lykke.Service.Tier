@@ -78,7 +78,7 @@ namespace TiersMigration
             var kycStatusService = container.Resolve<IKycStatusService>();
 
             var personalDatas = (await personalDataService.GetAsync(clientIds))
-                .Where(x => string.IsNullOrEmpty(x.CountryFromPOA))
+                .Where(x => x.CountryFromPOA == "KOR" || x.CountryFromPOA == "PRK")
                 .ToList();
 
             Console.WriteLine($"Processing {personalDatas.Count} items");
