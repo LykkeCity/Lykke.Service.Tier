@@ -60,7 +60,7 @@ namespace TiersMigration
 
             } while (!done);
 
-            var filename = $"tiers-info-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            var filename = $"no-poa-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
 
             using (var sw = new StreamWriter(filename))
@@ -78,7 +78,7 @@ namespace TiersMigration
             var kycStatusService = container.Resolve<IKycStatusService>();
 
             var personalDatas = (await personalDataService.GetAsync(clientIds))
-                .Where(x => x.CountryFromPOA == "KOR")
+                .Where(x => string.IsNullOrEmpty(x.CountryFromPOA))
                 .ToList();
 
             Console.WriteLine($"Processing {personalDatas.Count} items");
@@ -91,15 +91,15 @@ namespace TiersMigration
                     Interlocked.Increment(ref index);
                     Console.WriteLine($"({index} of {personalDatas.Count} chunk). Processing client = {pd.Id}");
                     var tierInfoTask = tierClient.Tiers.GetClientTierInfoAsync(pd.Id);
-                    var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
+                    //var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
                     var kycStatusTask = kycStatusService.GetKycStatusAsync(pd.Id);
-                    await Task.WhenAll(countryRiskTask, tierInfoTask, kycStatusTask);
+                    await Task.WhenAll(tierInfoTask, kycStatusTask);
 
                     TierInfoResponse tierInfo = tierInfoTask.Result;
-                    CountryRiskResponse countryRisk = countryRiskTask.Result;
+                    //CountryRiskResponse countryRisk = countryRiskTask.Result;
                     KycStatus kycStatus = kycStatusTask.Result;
 
-                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA ?? "-"},{countryRisk.Risk?.ToString() ?? "-"},{kycStatus},{tierInfo.CurrentTier.Tier},{tierInfo.CurrentTier.MaxLimit},{tierInfo.CurrentTier.Current},-");
+                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA ?? "-"},-,{kycStatus},{tierInfo.CurrentTier.Tier},{tierInfo.CurrentTier.MaxLimit},{tierInfo.CurrentTier.Current},-");
                 }
                 catch (Exception ex)
                 {
