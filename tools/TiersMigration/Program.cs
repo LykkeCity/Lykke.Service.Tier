@@ -60,7 +60,7 @@ namespace TiersMigration
 
             } while (!done);
 
-            var filename = $"no-poa-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            var filename = $"kor-prk-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
 
             using (var sw = new StreamWriter(filename))
