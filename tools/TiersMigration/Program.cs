@@ -26,6 +26,7 @@ using Lykke.Service.Tier.Client;
 using Lykke.Service.Tier.Client.Models.Responses;
 using Lykke.SettingsReader.ReloadingManager;
 using Microsoft.Extensions.Configuration;
+using IKycDocumentsService = Lykke.Service.PersonalData.Contract.IKycDocumentsService;
 
 namespace TiersMigration
 {
@@ -44,7 +45,7 @@ namespace TiersMigration
             var container = BuildContainer(settings);
 
             var sb = new StringBuilder();
-            sb.AppendLine("ClientId,Email,CountryPOA,Country risk,KYC status,currentTier,currentLimit,depositAmount,Comment");
+            sb.AppendLine("ClientId,Email,CountryPOA,Country risk,KYC status,KYC documents,currentTier,currentLimit,depositAmount,Comment");
 
             var clientAccountClient = container.Resolve<IClientAccountClient>();
             string continuationToken = null;
@@ -60,7 +61,7 @@ namespace TiersMigration
 
             } while (!done);
 
-            var filename = $"kor-prk-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            var filename = $"kor-prk-documents-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
 
             using (var sw = new StreamWriter(filename))
@@ -76,6 +77,7 @@ namespace TiersMigration
             var personalDataService = container.Resolve<IPersonalDataService>();
             var tierClient = container.Resolve<ITierClient>();
             var kycStatusService = container.Resolve<IKycStatusService>();
+            var kycDocumentsService = container.Resolve<Lykke.Service.Kyc.Abstractions.Services.IKycDocumentsService>();
 
             var personalDatas = (await personalDataService.GetAsync(clientIds))
                 .Where(x => x.CountryFromPOA == "KOR" || x.CountryFromPOA == "PRK")
@@ -93,13 +95,16 @@ namespace TiersMigration
                     var tierInfoTask = tierClient.Tiers.GetClientTierInfoAsync(pd.Id);
                     //var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
                     var kycStatusTask = kycStatusService.GetKycStatusAsync(pd.Id);
-                    await Task.WhenAll(tierInfoTask, kycStatusTask);
+                    var kycDocumentsTask = kycDocumentsService.GetDocumentsAsync(pd.Id);
+                    await Task.WhenAll(tierInfoTask, kycStatusTask, kycDocumentsTask);
 
                     TierInfoResponse tierInfo = tierInfoTask.Result;
                     //CountryRiskResponse countryRisk = countryRiskTask.Result;
                     KycStatus kycStatus = kycStatusTask.Result;
+                    var documents = kycDocumentsTask.Result.Where(x => x.State == "Approved").ToList();
+                    var documentNames = string.Join("; ", documents.Select(x => x.DocumentName));
 
-                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA ?? "-"},-,{kycStatus},{tierInfo.CurrentTier.Tier},{tierInfo.CurrentTier.MaxLimit},{tierInfo.CurrentTier.Current},-");
+                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA ?? "-"},-,{kycStatus},{documentNames} (count: {documents.Count}),{tierInfo.CurrentTier.Tier},{tierInfo.CurrentTier.MaxLimit},{tierInfo.CurrentTier.Current},-");
                 }
                 catch (Exception ex)
                 {
@@ -136,6 +141,14 @@ namespace TiersMigration
                     ApiKey = settings.KycApiKey
                 }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycStatusServiceClient))))
                 .As<IKycStatusService>()
+                .SingleInstance();
+
+            builder.Register(ctx => new KycDocumentsServiceClient(new KycServiceClientSettings
+                {
+                    ServiceUri = settings.KycServiceUrl,
+                    ApiKey = settings.KycApiKey
+                }, ctx.Resolve<ILogFactory>().CreateLog(nameof(KycDocumentsServiceClient))))
+                .As<Lykke.Service.Kyc.Abstractions.Services.IKycDocumentsService>()
                 .SingleInstance();
 
             builder.RegisterInstance(
