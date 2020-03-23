@@ -12,6 +12,8 @@ using Lykke.Common.Log;
 using Lykke.Logs;
 using Lykke.Messages.Email;
 using Lykke.Service.ClientAccount.Client;
+using Lykke.Service.ClientAccount.Client.Models;
+using Lykke.Service.ClientAccount.Client.Models.Request.ClientAccount;
 using Lykke.Service.History.Client;
 using Lykke.Service.Kyc.Abstractions.Domain.Verification;
 using Lykke.Service.Kyc.Abstractions.Services;
@@ -23,10 +25,9 @@ using Lykke.Service.RateCalculator.Client;
 using Lykke.Service.TemplateFormatter;
 using Lykke.Service.Tier.AzureRepositories;
 using Lykke.Service.Tier.Client;
-using Lykke.Service.Tier.Client.Models.Responses;
+using Lykke.Service.Tier.Client.Models.Requests;
 using Lykke.SettingsReader.ReloadingManager;
 using Microsoft.Extensions.Configuration;
-using IKycDocumentsService = Lykke.Service.PersonalData.Contract.IKycDocumentsService;
 
 namespace TiersMigration
 {
@@ -45,7 +46,7 @@ namespace TiersMigration
             var container = BuildContainer(settings);
 
             var sb = new StringBuilder();
-            sb.AppendLine("ClientId,Email,CountryPOA,Country risk,KYC status,KYC documents,currentTier,currentLimit,depositAmount,Comment");
+            sb.AppendLine("ClientId,Email,CountryPOA,KYC status,Tier,Limit,Comment");
 
             var clientAccountClient = container.Resolve<IClientAccountClient>();
             string continuationToken = null;
@@ -61,7 +62,7 @@ namespace TiersMigration
 
             } while (!done);
 
-            var filename = $"kor-prk-documents-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            var filename = $"kor-tier-limit-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             Console.WriteLine($"Saving results to {filename}...");
 
             using (var sw = new StreamWriter(filename))
@@ -77,11 +78,14 @@ namespace TiersMigration
             var personalDataService = container.Resolve<IPersonalDataService>();
             var tierClient = container.Resolve<ITierClient>();
             var kycStatusService = container.Resolve<IKycStatusService>();
-            var kycDocumentsService = container.Resolve<Lykke.Service.Kyc.Abstractions.Services.IKycDocumentsService>();
+            var clientAccountClient = container.Resolve<IClientAccountClient>();
 
             var personalDatas = (await personalDataService.GetAsync(clientIds))
-                .Where(x => x.CountryFromPOA == "KOR" || x.CountryFromPOA == "PRK")
+                .Where(x => x.CountryFromPOA == "KOR")
                 .ToList();
+
+            if (!personalDatas.Any())
+                return;
 
             Console.WriteLine($"Processing {personalDatas.Count} items");
             int index = 0;
@@ -92,23 +96,24 @@ namespace TiersMigration
                 {
                     Interlocked.Increment(ref index);
                     Console.WriteLine($"({index} of {personalDatas.Count} chunk). Processing client = {pd.Id}");
-                    var tierInfoTask = tierClient.Tiers.GetClientTierInfoAsync(pd.Id);
-                    //var countryRiskTask = tierClient.Countries.GetCountryRiskAsync(pd.CountryFromPOA);
-                    var kycStatusTask = kycStatusService.GetKycStatusAsync(pd.Id);
-                    var kycDocumentsTask = kycDocumentsService.GetDocumentsAsync(pd.Id);
-                    await Task.WhenAll(tierInfoTask, kycStatusTask, kycDocumentsTask);
+                    var kycStatus = await kycStatusService.GetKycStatusAsync(pd.Id);
 
-                    TierInfoResponse tierInfo = tierInfoTask.Result;
-                    //CountryRiskResponse countryRisk = countryRiskTask.Result;
-                    KycStatus kycStatus = kycStatusTask.Result;
-                    var documents = kycDocumentsTask.Result.Where(x => x.State == "Approved").ToList();
-                    var documentNames = string.Join("; ", documents.Select(x => x.DocumentName));
+                    if (kycStatus == KycStatus.Ok)
+                    {
+                        await Task.WhenAll(
+                            tierClient.Limits.SetLimitAsync(new SetLimitRequest {ClientId = pd.Id, Limit = 15000}),
+                            clientAccountClient.ClientAccount.ChangeAccountTierAsync(pd.Id,
+                                new AccountTierRequest {Tier = AccountTier.Advanced})
+                        );
 
-                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA ?? "-"},-,{kycStatus},{documentNames} (count: {documents.Count}),{tierInfo.CurrentTier.Tier},{tierInfo.CurrentTier.MaxLimit},{tierInfo.CurrentTier.Current},-");
+                        sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA ?? "-"},{kycStatus},Advanced,15000,");
+                    }
+
+
                 }
                 catch (Exception ex)
                 {
-                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA},-,-,-,-,-,{ex.Message}");
+                    sb.AppendLine($"{pd.Id},{pd.Email},{pd.CountryFromPOA},-,-,-,{ex.Message}");
                     Console.WriteLine($"ClientId = {pd.Id}: {ex.Message}");
                 }
             }
