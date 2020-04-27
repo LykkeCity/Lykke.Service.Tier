@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Autofac;
@@ -51,51 +53,25 @@ namespace TiersMigration
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,OperationId,OperationType,Date,Amount,Base Amount,Comment");
 
-            var deposits = await depositsStorage.GetDataAsync();
-
-            Console.WriteLine($"Processing {deposits.Count} deposits");
-            var index = 1;
-
-            foreach (var item in deposits)
+            await depositsStorage.GetDataByChunksAsync(chunk =>
             {
-                Console.WriteLine($"Processing {index++} of {deposits.Count} deposits");
-                var operation = await operationsClient.Get(Guid.Parse(item.OperationId));
+                var deposits = chunk.Where(x => x.OperationType == "CryptoCashIn").ToList();
 
-                if (operation != null)
+                Console.WriteLine($"Deleting {deposits.Count} crypto deposits...");
+
+                var grouped = deposits.GroupBy(x => x.PartitionKey);
+
+                foreach (var group in grouped)
                 {
-                    if (operation.Type == OperationType.Cashout)
-                    {
-                        await depositsStorage.DeleteIfExistAsync(item.ClientId, item.OperationId);
-                        sb.AppendLine($"{item.ClientId},{item.OperationId},{item.OperationType},{item.Date},{item.Amount} {item.Asset},{item.BaseVolume} {item.BaseAsset},{operation.Type} -> deleted");
-                    }
+                    var items = group.Select(x => x).ToList();
+                    depositsStorage.DeleteAsync(items).GetAwaiter().GetResult();
                 }
-                else
-                {
-                    if (item.OperationType == "CardCashIn")
-                    {
-                        var payment = await paymentsStorage.GetDataAsync(item.ClientId, item.OperationId);
-                        if (payment != null && payment.PaymentSystem == "Swift" && payment.Status != "NotifyDeclined")
-                        {
-                            await depositsStorage.MergeAsync(item.ClientId, item.OperationId, entity =>
-                            {
-                                entity.OperationType = "SwiftTransfer";
-                                return entity;
-                            });
-                            sb.AppendLine($"{item.ClientId},{item.OperationId},{item.OperationType},{item.Date},{item.Amount} {item.Asset},{item.BaseVolume} {item.BaseAsset},operationType -> SwiftTransfer");
-                        }
-                    }
-                }
-            }
 
-            var filename = $"deposit-fixes-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
-            Console.WriteLine($"Saving results to {filename}...");
+                Console.WriteLine("Done");
 
-            using (var sw = new StreamWriter(filename))
-            {
-                sw.Write(sb.ToString());
-            }
+            });
 
-            Console.WriteLine("Done!");
+            Console.WriteLine("Finished!");
         }
 
         private static IContainer BuildContainer(AppSettings settings)
