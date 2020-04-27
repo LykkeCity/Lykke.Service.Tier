@@ -53,9 +53,11 @@ namespace TiersMigration
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,OperationId,OperationType,Date,Amount,Base Amount,Comment");
 
+            var fiatCurrencies = new[] {"USD", "EUR", "CHF", "GBP"};
+
             await depositsStorage.GetDataByChunksAsync(chunk =>
             {
-                var deposits = chunk.Where(x => x.OperationType == "CryptoCashIn").ToList();
+                var deposits = chunk.Where(x => !fiatCurrencies.Contains(x.Asset)).ToList();
 
                 Console.WriteLine($"Deleting {deposits.Count} crypto deposits...");
 
