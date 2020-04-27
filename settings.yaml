@@ -40,6 +40,9 @@ TierService:
       types: [RabbitMq]
     SpotEventsExchangeName:
       settings-key: MatchingEngineSpotEventsExchange
+  DepositCurrencies:
+    settings-key: TierService-DepositCurrencies
+    types: [JsonArray]
 
   Cqrs:
     RabbitConnectionString:
