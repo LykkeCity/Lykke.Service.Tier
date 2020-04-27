@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
@@ -22,6 +23,7 @@ namespace Lykke.Service.Tier.RabbitSubscribers
         private readonly ILogFactory _logFactory;
         private readonly string _connectionString;
         private readonly string _exchangeName;
+        private readonly IReadOnlyList<string> _depositCurrencies;
         private readonly IClientAccountClient _clientAccountClient;
         private readonly ICurrencyConverter _currencyConverter;
         private readonly ICqrsEngine _cqrsEngine;
@@ -31,6 +33,7 @@ namespace Lykke.Service.Tier.RabbitSubscribers
         public CashTransferSubscriber(
             string connectionString,
             string exchangeName,
+            IReadOnlyList<string> depositCurrencies,
             IClientAccountClient clientAccountClient,
             ICurrencyConverter currencyConverter,
             ICqrsEngine cqrsEngine,
@@ -41,6 +44,7 @@ namespace Lykke.Service.Tier.RabbitSubscribers
             _log = _logFactory.CreateLog(this);
             _connectionString = connectionString;
             _exchangeName = exchangeName;
+            _depositCurrencies = depositCurrencies;
             _clientAccountClient = clientAccountClient;
             _currencyConverter = currencyConverter;
             _cqrsEngine = cqrsEngine;
@@ -66,6 +70,9 @@ namespace Lykke.Service.Tier.RabbitSubscribers
 
         private async Task ProcessMessageAsync(CashTransferEvent item)
         {
+            if (!_depositCurrencies.Contains(item.CashTransfer.AssetId, StringComparer.InvariantCultureIgnoreCase))
+                return;
+
             var transfer = item.CashTransfer;
             if (await IsTransferBetweenClientWalletsAsync(transfer.FromWalletId, transfer.ToWalletId))
             {

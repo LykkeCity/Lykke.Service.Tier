@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
 using Common;
@@ -22,6 +24,7 @@ namespace Lykke.Service.Tier.RabbitSubscribers
         private readonly ILogFactory _logFactory;
         private readonly string _connectionString;
         private readonly string _exchangeName;
+        private readonly IReadOnlyList<string> _depositCurrencies;
         private RabbitMqSubscriber<CashInEvent> _subscriber;
         private readonly ILog _log;
 
@@ -30,7 +33,8 @@ namespace Lykke.Service.Tier.RabbitSubscribers
             ICqrsEngine cqrsEngine,
             ILogFactory logFactory,
             string connectionString,
-            string exchangeName
+            string exchangeName,
+            IReadOnlyList<string> depositCurrencies
             )
         {
             _currencyConverter = currencyConverter;
@@ -39,6 +43,7 @@ namespace Lykke.Service.Tier.RabbitSubscribers
             _log = _logFactory.CreateLog(this);
             _connectionString = connectionString;
             _exchangeName = exchangeName;
+            _depositCurrencies = depositCurrencies;
         }
 
         public void Start()
@@ -61,6 +66,9 @@ namespace Lykke.Service.Tier.RabbitSubscribers
 
         private async Task ProcessMessageAsync(CashInEvent item)
         {
+            if (!_depositCurrencies.Contains(item.CashIn.AssetId, StringComparer.InvariantCultureIgnoreCase))
+                return;
+
             _log.Info("CashIn event", context: item.ToJson());
 
             double volume = Convert.ToDouble(item.CashIn.Volume);
