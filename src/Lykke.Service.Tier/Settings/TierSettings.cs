@@ -16,5 +16,6 @@ namespace Lykke.Service.Tier.Settings
         public RedisSettings Redis { get; set; }
         public string DefaultAsset { get; set; }
         public RabbitMqSettings Rabbit { get; set; }
+        public IReadOnlyList<string> DepositCurrencies { get; set; }
     }
 }
