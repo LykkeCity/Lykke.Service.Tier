@@ -75,6 +75,7 @@ namespace Lykke.Service.Tier.Modules
                 .AutoActivate()
                 .WithParameter("connectionString", _appSettings.CurrentValue.TierService.Rabbit.ConnectionString)
                 .WithParameter("exchangeName", _appSettings.CurrentValue.TierService.Rabbit.SpotEventsExchangeName)
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.DepositCurrencies))
                 .SingleInstance();
 
             builder.RegisterType<CashTransferSubscriber>()
@@ -82,6 +83,7 @@ namespace Lykke.Service.Tier.Modules
                 .AutoActivate()
                 .WithParameter("connectionString", _appSettings.CurrentValue.TierService.Rabbit.ConnectionString)
                 .WithParameter("exchangeName", _appSettings.CurrentValue.TierService.Rabbit.SpotEventsExchangeName)
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.DepositCurrencies))
                 .SingleInstance();
 
             builder.RegisterType<CurrencyConverter>()
