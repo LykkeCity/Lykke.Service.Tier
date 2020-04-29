@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Autofac;
@@ -15,7 +15,6 @@ using Lykke.Service.History.Client;
 using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.Kyc.Client;
 using Lykke.Service.Operations.Client;
-using Lykke.Service.Operations.Contracts;
 using Lykke.Service.PersonalData.Client;
 using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Settings;
@@ -25,6 +24,7 @@ using Lykke.Service.Tier.AzureRepositories;
 using Lykke.Service.Tier.Client;
 using Lykke.SettingsReader.ReloadingManager;
 using Microsoft.Extensions.Configuration;
+using JsonConvert = Newtonsoft.Json.JsonConvert;
 
 namespace TiersMigration
 {
@@ -48,30 +48,53 @@ namespace TiersMigration
             var paymentsStorage = container.Resolve<INoSQLTableStorage<PaymentEntity>>();
             var operationsClient = container.Resolve<IOperationsClient>();
             var clientAccountClient = container.Resolve<IClientAccountClient>();
+            var rateCalculatorClient = container.Resolve<IRateCalculatorClient>();
+            var limitationsClient = new HttpClient();
+            limitationsClient.BaseAddress = new Uri(settings.LimitationsServiceUrl);
 
-            Console.WriteLine("Getting client deposits...");
+            Console.WriteLine($"Checking {settings.ClientIds.Count()} clients...");
             var sb = new StringBuilder();
             sb.AppendLine("ClientId,OperationId,OperationType,Date,Amount,Base Amount,Comment");
 
             var fiatCurrencies = new[] {"USD", "EUR", "CHF", "GBP"};
 
-            await depositsStorage.GetDataByChunksAsync(chunk =>
+            foreach (var clientId in settings.ClientIds)
             {
-                var deposits = chunk.Where(x => !fiatCurrencies.Contains(x.Asset)).ToList();
+                var limitDataResponse = await limitationsClient.PostAsync($"/api/limitations/GetClientData?clientId={clientId}&period=Month", null);
 
-                Console.WriteLine($"Deleting {deposits.Count} crypto deposits...");
-
-                var grouped = deposits.GroupBy(x => x.PartitionKey);
-
-                foreach (var group in grouped)
+                if (limitDataResponse.IsSuccessStatusCode)
                 {
-                    var items = group.Select(x => x).ToList();
-                    depositsStorage.DeleteAsync(items).GetAwaiter().GetResult();
+                    var data = await limitDataResponse.Content.ReadAsStringAsync();
+                    var limitations = JsonConvert.DeserializeObject<LimitationsResponse>(data);
+
+                    var allOperations = new List<CashOperationResponse>();
+                    allOperations.AddRange(limitations.CashOperations);
+                    allOperations.AddRange(limitations.CashTransferOperations);
+
+                    if (allOperations.Any())
+                    {
+                        foreach (var operation in allOperations)
+                        {
+                            if (!fiatCurrencies.Contains(operation.Asset, StringComparer.InvariantCultureIgnoreCase))
+                                continue;
+
+                            var deposit = await depositsStorage.GetDataAsync(clientId, operation.Id);
+
+                            if (deposit == null)
+                            {
+                                var baseVolume = operation.Asset == "EUR"
+                                    ? (double)operation.Volume
+                                    : await rateCalculatorClient.GetAmountInBaseAsync(operation.Asset, (double)operation.Volume,
+                                        "EUR");
+                                var row =
+                                    $"{clientId},{operation.Id},{operation.OperationType},{operation.DateTime},{operation.Volume} {operation.Asset},{baseVolume} EUR,new record";
+                                Console.WriteLine(row);
+                                sb.AppendLine(row);
+                            }
+                        }
+                    }
                 }
-
-                Console.WriteLine("Done");
-
-            });
+            }
 
             Console.WriteLine("Finished!");
         }

@@ -17,6 +17,8 @@ namespace TiersMigration
         public string KycServiceUrl { get; set; }
         public string KycApiKey { get; set; }
         public string OperationsServiceUrl { get; set; }
+        public string LimitationsServiceUrl { get; set; }
+        public string[] ClientIds { get; set; }
         public Dictionary<string, double> Tier2Emails { get; set; } = new Dictionary<string, double>();
     }
 }
