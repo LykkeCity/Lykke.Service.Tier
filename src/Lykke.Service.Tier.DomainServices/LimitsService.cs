@@ -49,7 +49,7 @@ namespace Lykke.Service.Tier.DomainServices
 
             if (countryRisk == null)
             {
-                _log.Error(message: $"Can't get country risk for country {country}");
+                _log.Error(message: $"Can't get country risk for country {country}", context: clientId);
                 return null;
             }
 
@@ -57,7 +57,7 @@ namespace Lykke.Service.Tier.DomainServices
 
             if (limit == null)
             {
-                _log.Error(message: $"Can't get limit settings for tier {tier} and country risk {countryRisk}");
+                _log.Error(message: $"Can't get limit settings for tier {tier} and country risk {countryRisk}", context: clientId);
                 return null;
             }
 
