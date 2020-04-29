@@ -86,6 +86,19 @@ namespace TiersMigration
                                     ? (double)operation.Volume
                                     : await rateCalculatorClient.GetAmountInBaseAsync(operation.Asset, (double)operation.Volume,
                                         "EUR");
+
+                                await depositsStorage.InsertAsync(new DepositOperationEntity
+                                {
+                                    PartitionKey = clientId,
+                                    RowKey = operation.Id,
+                                    Asset = operation.Asset,
+                                    Amount = (double) operation.Volume,
+                                    BaseAsset = "EUR",
+                                    BaseVolume = baseVolume,
+                                    OperationType = operation.OperationType,
+                                    Date = operation.DateTime
+                                });
+
                                 var row =
                                     $"{clientId},{operation.Id},{operation.OperationType},{operation.DateTime},{operation.Volume} {operation.Asset},{baseVolume} EUR,new record";
                                 Console.WriteLine(row);
