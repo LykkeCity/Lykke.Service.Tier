@@ -5,6 +5,7 @@ using Lykke.Sdk;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Services;
 using Lykke.Service.Tier.DomainServices;
+using Lykke.Service.Tier.PeriodicalHandlers;
 using Lykke.Service.Tier.RabbitSubscribers;
 using Lykke.Service.Tier.Services;
 using Lykke.Service.Tier.Settings;
@@ -88,6 +89,11 @@ namespace Lykke.Service.Tier.Modules
 
             builder.RegisterType<CurrencyConverter>()
                 .As<ICurrencyConverter>()
+                .SingleInstance();
+
+            builder.RegisterType<LimitReachedHandler>()
+                .As<IStartable>()
+                .AutoActivate()
                 .SingleInstance();
         }
     }

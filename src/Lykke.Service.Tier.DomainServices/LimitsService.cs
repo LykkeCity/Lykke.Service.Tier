@@ -20,6 +20,7 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly IDatabase _database;
         private readonly ILimitsRepository _limitsRepository;
         private readonly IClientDepositsRepository _clientDepositsRepository;
+        private readonly ILimitsReachedRepository _limitsReachedRepository;
         private readonly ISettingsService _settingsService;
         private readonly ILog _log;
 
@@ -28,6 +29,7 @@ namespace Lykke.Service.Tier.DomainServices
             IDatabase database,
             ILimitsRepository limitsRepository,
             IClientDepositsRepository clientDepositsRepository,
+            ILimitsReachedRepository limitsReachedRepository,
             ISettingsService settingsService,
             ILogFactory logFactory
             )
@@ -36,6 +38,7 @@ namespace Lykke.Service.Tier.DomainServices
             _database = database;
             _limitsRepository = limitsRepository;
             _clientDepositsRepository = clientDepositsRepository;
+            _limitsReachedRepository = limitsReachedRepository;
             _settingsService = settingsService;
             _log = logFactory.CreateLog(this);
         }
@@ -49,17 +52,19 @@ namespace Lykke.Service.Tier.DomainServices
 
             if (countryRisk == null)
             {
-                _log.Error(message: $"Can't get country risk for country {country}", context: clientId);
-                return null;
+                _log.Warning(message: $"Can't get country risk for country {country}", context: clientId);
             }
 
-            LimitSettings limit = _settingsService.GetLimit(countryRisk.Value, tier);
-
-            if (limit == null)
+            if (countryRisk.HasValue)
             {
-                _log.Error(message: $"Can't get limit settings for tier {tier} and country risk {countryRisk}", context: clientId);
-                return null;
+                LimitSettings limit = _settingsService.GetLimit(countryRisk.Value, tier);
+
+                if (limit == null)
+                {
+                    _log.Warning(message: $"Can't get limit settings for tier {tier} and country risk {countryRisk}", context: clientId);
+                }
             }
+
 
             var individualLimit = await _limitsRepository.GetAsync(clientId);
 
@@ -83,7 +88,7 @@ namespace Lykke.Service.Tier.DomainServices
             return _clientDepositsRepository.DeleteAsync(clientId, operationId);
         }
 
-        public async Task<double> GetClientDepositAmountAsync(string clientId, AccountTier tier)
+        public async Task<double> GetClientDepositAmountAsync(string clientId)
         {
             //TODO: get from redis
             var monthAgo = DateTime.UtcNow.AddDays(-30);
@@ -107,6 +112,27 @@ namespace Lykke.Service.Tier.DomainServices
             var monthAgo = DateTime.UtcNow.AddDays(-30);
             var depoists = await _clientDepositsRepository.GetDepositsAsync(clientId);
             return depoists.Where(x => x.Date >= monthAgo);
+        }
+
+        public Task SetLimitReachedAsync(string clientId, double amount, double maxAmount, string asset)
+        {
+            return _limitsReachedRepository.AddAsync(clientId, amount, maxAmount, asset);
+        }
+
+        public Task<IReadOnlyList<ILimitReached>> GetAllLimitReachedAsync()
+        {
+            return _limitsReachedRepository.GetAllAsync();
+        }
+
+        public Task RemoveLimitReachedAsync(string clientId)
+        {
+            return _limitsReachedRepository.RemoveAsync(clientId);
+        }
+
+        public async Task<bool> IsLimitReachedAsync(string clientId)
+        {
+            var limitReached = await _limitsReachedRepository.GetAsync(clientId);
+            return limitReached != null;
         }
     }
 }

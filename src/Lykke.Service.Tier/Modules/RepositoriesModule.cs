@@ -29,6 +29,12 @@ namespace Lykke.Service.Tier.Modules
             ).As<ILimitsRepository>().SingleInstance();
 
             builder.Register(ctx =>
+                new LimitsReachedRepository(AzureTableStorage<LimitReachedEntity>.Create(
+                    _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
+                    "LimitsReached", ctx.Resolve<ILogFactory>()))
+            ).As<ILimitsReachedRepository>().SingleInstance();
+
+            builder.Register(ctx =>
                 new TierUpgradeRequestsRepository(AzureTableStorage<TierUpgradeRequestEntity>.Create(
                     _appSettings.ConnectionString(x => x.TierService.Db.DataConnString),
                     "TierUpgradeRequests", ctx.Resolve<ILogFactory>()),

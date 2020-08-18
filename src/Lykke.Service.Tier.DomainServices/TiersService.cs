@@ -54,7 +54,7 @@ namespace Lykke.Service.Tier.DomainServices
 
         private async Task<CurrentTier> GetCurrentTierAync(string clientId, AccountTier clientTier, string country)
         {
-            var currentDepositAmountTask = _limitsService.GetClientDepositAmountAsync(clientId, clientTier);
+            var currentDepositAmountTask = _limitsService.GetClientDepositAmountAsync(clientId);
             var maxLimitTask = _limitsService.GetClientLimitSettingsAsync(clientId, clientTier, country);
 
             await Task.WhenAll(currentDepositAmountTask, maxLimitTask);
