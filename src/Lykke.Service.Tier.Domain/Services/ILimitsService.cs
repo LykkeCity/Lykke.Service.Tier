@@ -11,9 +11,13 @@ namespace Lykke.Service.Tier.Domain.Services
         Task<LimitSettings> GetClientLimitSettingsAsync(string clientId, AccountTier tier, string country);
         Task SaveDepositOperationAsync(IDepositOperation deposit);
         Task DeleteDepositOperationAsync(string clientId, string operationId);
-        Task<double> GetClientDepositAmountAsync(string clientId, AccountTier tier);
+        Task<double> GetClientDepositAmountAsync(string clientId);
         Task AddLimitAsync(string clientId, double limit, string asset);
         Task<ILimit> GetLimitAsync(string clientId);
         Task<IEnumerable<IDepositOperation>> GetClientDepositsAsync(string clientId);
+        Task SetLimitReachedAsync(string clientId, double amount, double maxAmount, string asset);
+        Task<IReadOnlyList<ILimitReached>> GetAllLimitReachedAsync();
+        Task RemoveLimitReachedAsync(string clientId);
+        Task<bool> IsLimitReachedAsync(string clientId);
     }
 }
