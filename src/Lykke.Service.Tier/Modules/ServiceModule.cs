@@ -53,7 +53,7 @@ namespace Lykke.Service.Tier.Modules
             builder.RegisterType<LimitsService>()
                 .As<ILimitsService>()
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Redis.InstanceName))
-                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.Redis.InstanceName))
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.TierService.SkipClientIds))
                 .SingleInstance();
 
             builder.RegisterType<SettingsService>()
