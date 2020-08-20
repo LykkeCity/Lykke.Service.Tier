@@ -75,7 +75,7 @@ namespace Lykke.Service.Tier.PeriodicalHandlers
 
                 if (client == null || pd == null)
                 {
-                    _log.Warning("Client or personal data not found", new { limit.ClientId }.ToJson());
+                    _log.Warning("Client or personal data not found", context: limit.ClientId);
                     continue;
                 }
 
@@ -92,7 +92,7 @@ namespace Lykke.Service.Tier.PeriodicalHandlers
                 if (checkAmount < currentLimitSettingsTask.Result.MaxLimit.Value)
                 {
                     await _limitsService.RemoveLimitReachedAsync(limit.ClientId);
-                    _log.Info("Limit reached removed", new {limit.ClientId}.ToJson());
+                    _log.Info("Limit reached removed", context: limit.ClientId);
                 }
             }
         }

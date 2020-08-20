@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -58,6 +59,26 @@ namespace Lykke.Service.Tier.Controllers
         {
             ILimit limit = await _limitsService.GetLimitAsync(clientId);
             return _mapper.Map<LimitResponse>(limit);
+        }
+
+        /// <inheritdoc cref="ILimitsApi"/>
+        [HttpGet("reached")]
+        [SwaggerOperation("GetLimitReachedAll")]
+        [ProducesResponseType(typeof(LimitReachedResponse), (int)HttpStatusCode.OK)]
+        public async Task<LimitReachedResponse> GetLimitReachedAllAsync()
+        {
+            var reached = await _limitsService.GetAllLimitReachedAsync();
+
+            return new LimitReachedResponse {ClientIds = reached.Select(x => x.ClientId).ToList()};
+        }
+
+        /// <inheritdoc cref="ILimitsApi"/>
+        [HttpGet("reached/{clientId}")]
+        [SwaggerOperation("IsLimitReached")]
+        [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
+        public Task<bool> IsLimitReachedAsync(string clientId)
+        {
+            return _limitsService.IsLimitReachedAsync(clientId);
         }
     }
 }

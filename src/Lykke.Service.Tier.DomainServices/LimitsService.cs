@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.ClientAccount.Client.Models;
+using Lykke.Service.Tier.Contract;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Deposits;
 using Lykke.Service.Tier.Domain.Repositories;
@@ -55,9 +56,11 @@ namespace Lykke.Service.Tier.DomainServices
                 _log.Warning(message: $"Can't get country risk for country {country}", context: clientId);
             }
 
+            LimitSettings limit = null;
+
             if (countryRisk.HasValue)
             {
-                LimitSettings limit = _settingsService.GetLimit(countryRisk.Value, tier);
+                limit = _settingsService.GetLimit(countryRisk.Value, tier);
 
                 if (limit == null)
                 {
@@ -65,14 +68,13 @@ namespace Lykke.Service.Tier.DomainServices
                 }
             }
 
-
             var individualLimit = await _limitsRepository.GetAsync(clientId);
 
             var result = new LimitSettings
             {
-                Tier = limit.Tier,
-                MaxLimit = individualLimit?.Limit ?? limit.MaxLimit,
-                Documents = limit.Documents
+                Tier = tier,
+                MaxLimit = individualLimit?.Limit ?? limit?.MaxLimit,
+                Documents = limit?.Documents ?? Array.Empty<DocumentType>()
             };
 
             return result;
