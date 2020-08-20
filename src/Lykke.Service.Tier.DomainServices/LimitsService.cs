@@ -23,6 +23,7 @@ namespace Lykke.Service.Tier.DomainServices
         private readonly IClientDepositsRepository _clientDepositsRepository;
         private readonly ILimitsReachedRepository _limitsReachedRepository;
         private readonly ISettingsService _settingsService;
+        private readonly IReadOnlyList<string> _clientIds;
         private readonly ILog _log;
 
         public LimitsService(
@@ -32,7 +33,8 @@ namespace Lykke.Service.Tier.DomainServices
             IClientDepositsRepository clientDepositsRepository,
             ILimitsReachedRepository limitsReachedRepository,
             ISettingsService settingsService,
-            ILogFactory logFactory
+            ILogFactory logFactory,
+            IReadOnlyList<string> clientIds
             )
         {
             _instanceName = instanceName;
@@ -41,6 +43,7 @@ namespace Lykke.Service.Tier.DomainServices
             _clientDepositsRepository = clientDepositsRepository;
             _limitsReachedRepository = limitsReachedRepository;
             _settingsService = settingsService;
+            _clientIds = clientIds;
             _log = logFactory.CreateLog(this);
         }
 
@@ -51,7 +54,7 @@ namespace Lykke.Service.Tier.DomainServices
 
             var countryRisk = _settingsService.GetCountryRisk(country);
 
-            if (countryRisk == null)
+            if (countryRisk == null && !_clientIds.Contains(clientId))
             {
                 _log.Warning(message: $"Can't get country risk for country {country}", context: clientId);
             }

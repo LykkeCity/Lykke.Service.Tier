@@ -43,6 +43,9 @@ TierService:
   DepositCurrencies:
     settings-key: TierService-DepositCurrencies
     types: [JsonArray]
+  SkipClientIds:
+    settings-key: TierService-SkipClientIds
+    types: [JsonArray]
 
   Cqrs:
     RabbitConnectionString:
