@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using JetBrains.Annotations;
 using Lykke.Service.Tier.Domain;
 using Lykke.Service.Tier.Domain.Settings;
+using Lykke.SettingsReader.Attributes;
 
 namespace Lykke.Service.Tier.Settings
 {
@@ -17,5 +19,6 @@ namespace Lykke.Service.Tier.Settings
         public string DefaultAsset { get; set; }
         public RabbitMqSettings Rabbit { get; set; }
         public IReadOnlyList<string> DepositCurrencies { get; set; }
+        [Optional] public IReadOnlyList<string> SkipClientIds { get; set; } = Array.Empty<string>();
     }
 }

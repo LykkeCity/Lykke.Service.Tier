@@ -1,12 +1,9 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Lykke.Cqrs;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.Models.Response.ClientAccountInformation;
-using Lykke.Service.Kyc.Abstractions.Domain.Verification;
-using Lykke.Service.Kyc.Abstractions.Services;
 using Lykke.Service.PersonalData.Contract;
 using Lykke.Service.PersonalData.Contract.Models;
 using Lykke.Service.PushNotifications.Contract;
@@ -27,8 +24,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
         private readonly ILimitsService _limitsService;
         private readonly ISettingsService _settingsService;
         private readonly ITemplateFormatter _templateFormatter;
-        private readonly IKycStatusService _kycStatusService;
-        private readonly ITierUpgradeService _tierUpgradeService;
         private readonly IMapper _mapper;
 
         public ClientDepositsSaga(
@@ -37,8 +32,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             ILimitsService limitsService,
             ISettingsService settingsService,
             ITemplateFormatter templateFormatter,
-            IKycStatusService kycStatusService,
-            ITierUpgradeService tierUpgradeService,
             IMapper mapper
             )
         {
@@ -47,8 +40,6 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             _limitsService = limitsService;
             _settingsService = settingsService;
             _templateFormatter = templateFormatter;
-            _kycStatusService = kycStatusService;
-            _tierUpgradeService = tierUpgradeService;
             _mapper = mapper;
         }
 
@@ -72,12 +63,22 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             if (currentLimitSettings?.MaxLimit == null)
                 return;
 
-            double checkAmount = await _limitsService.GetClientDepositAmountAsync(evt.ClientId, clientAccount.Tier);
+            var checkAmountTask = _limitsService.GetClientDepositAmountAsync(evt.ClientId);
+            var pushSettingsTask = _clientAccountClient.ClientSettings.GetPushNotificationAsync(evt.ClientId);
+
+            await Task.WhenAll(checkAmountTask, pushSettingsTask);
+
+            var checkAmount = checkAmountTask.Result;
+            var pushSettings = pushSettingsTask.Result;
 
             if (checkAmount > currentLimitSettings.MaxLimit.Value)
             {
-                var kycStatus = await GetKycStatusAsync(evt.ClientId);
-                await _kycStatusService.ChangeKycStatusAsync(evt.ClientId, kycStatus, $"{nameof(ClientDepositsSaga)} - limit reached ({checkAmount} of {currentLimitSettings.MaxLimit.Value} {_settingsService.GetDefaultAsset()})");
+                await _limitsService.SetLimitReachedAsync(evt.ClientId, checkAmount,
+                    currentLimitSettings.MaxLimit.Value, evt.BaseAsset);
+
+                if (pushSettings.Enabled && !string.IsNullOrEmpty(clientAccount.NotificationsId))
+                    await SendPushNotificationAsync(clientAccount.PartnerId, clientAccount.NotificationsId,
+                        "PushLimitReachedTemplate", new { }, commandSender);
             }
 
             if (checkAmount <= currentLimitSettings.MaxLimit.Value)
@@ -87,55 +88,28 @@ namespace Lykke.Service.Tier.Workflow.Sagas
                 if (!needNotification)
                     return;
 
-                var pushSettings = await _clientAccountClient.ClientSettings.GetPushNotificationAsync(evt.ClientId);
-
                 if (pushSettings.Enabled && !string.IsNullOrEmpty(clientAccount.NotificationsId))
-                {
-                    var template = await _templateFormatter.FormatAsync("PushLimitPercentReachedTemplate",
-                        clientAccount.PartnerId, "EN",
-                        new
-                        {
+                    await SendPushNotificationAsync(clientAccount.PartnerId, clientAccount.NotificationsId,
+                        "PushLimitPercentReachedTemplate", new {
                             CurrentAmount = checkAmount,
                             Limit = currentLimitSettings.MaxLimit.Value,
                             Percent = Math.Round(checkAmount / currentLimitSettings.MaxLimit.Value * 100),
                             FullName = pd.FullName,
                             Asset = evt.BaseAsset
-                        });
-
-                    commandSender.SendCommand(new TextNotificationCommand
-                    {
-                        NotificationIds = new[]{clientAccount.NotificationsId},
-                        Type = NotificationType.DepositLimitPercentReached.ToString(),
-                        Message = template.Subject
-                    }, PushNotificationsBoundedContext.Name);
-                }
+                        }, commandSender);
             }
         }
 
-        private async Task<KycStatus> GetKycStatusAsync(string clientId)
+        private async Task SendPushNotificationAsync(string partnerId, string notificationId, string template, object model, ICommandSender commandSender)
         {
-            var requests = await _tierUpgradeService.GetByClientAsync(clientId);
+            var message = await _templateFormatter.FormatAsync(template, partnerId, "EN", model);
 
-            var kycStatus = KycStatus.NeedToFillData;
-
-            if (requests.Any())
+            commandSender.SendCommand(new TextNotificationCommand
             {
-                if (requests.Any(x => x.KycStatus == KycStatus.Pending))
-                {
-                    kycStatus = KycStatus.Pending;
-                }
-
-                if (requests.Any(x => x.KycStatus == KycStatus.Rejected))
-                {
-                    kycStatus = KycStatus.NeedToFillData;
-                }
-            }
-            else
-            {
-                kycStatus = KycStatus.NeedToFillData;
-            }
-
-            return kycStatus;
+                NotificationIds = new[]{notificationId},
+                Type = NotificationType.DepositLimitPercentReached.ToString(),
+                Message = message.Subject
+            }, PushNotificationsBoundedContext.Name);
         }
     }
 }
