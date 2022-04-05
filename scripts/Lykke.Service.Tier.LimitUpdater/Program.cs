@@ -124,7 +124,7 @@ namespace Lykke.Service.Tier.LimitUpdater
                 selectCount++;
                 var resolution = shouldDelete ? "DELETE" : "DO NOT TOUCH";
                 logger.Info($"{selectCount} of {existedLimits.Count}. " +
-                            $"ClientId: {limit.ClientId}, Tier: {clientAccount.Tier}, CountryFromID: {personalData.CountryFromID}, CountryFromPOA: {personalData.CountryFromPOA}" +
+                            $"ClientId: {limit.ClientId}, Tier: {clientAccount.Tier}, CountryFromID: {personalData.CountryFromID}, CountryFromPOA: {personalData.CountryFromPOA} " +
                             $"Resolution : {resolution}");
 
             }
