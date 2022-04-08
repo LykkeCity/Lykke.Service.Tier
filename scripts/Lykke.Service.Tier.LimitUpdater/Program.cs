@@ -133,7 +133,7 @@ namespace Lykke.Service.Tier.LimitUpdater
             var deleteCounter = 0;
             foreach (var limitEntity in selectedForDeletion)
             {
-                await limitStorage.DeleteAsync(limitEntity);
+                await limitStorage.DeleteAsync(limitEntity.PartitionKey, limitEntity.RowKey);
                 deleteCounter++;
                 logger.Info($"{deleteCounter} of {selectedForDeletion.Count} deleted");
             }
