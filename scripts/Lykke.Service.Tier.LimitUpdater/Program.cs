@@ -111,13 +111,15 @@ namespace Lykke.Service.Tier.LimitUpdater
                 var clientAccount = await clientAccountService.ClientAccountInformation.GetByIdAsync(limit.ClientId);
                 if (personalData == null)
                 {
-                    throw new InvalidOperationException($"Personal data is null for {limit.ClientId}");
+                    logger.Warning($"Personal data is null for {limit.ClientId}");
+                    continue;
                 }
+                
                 if (clientAccount == null)
                 {
-                    throw new InvalidOperationException($"Personal data is null for {limit.ClientId}");
+                    logger.Warning($"clientAccount is null for {limit.ClientId}");
+                    continue;
                 }
-
 
                 var shouldDelete = clientAccount.Tier == AccountTier.Advanced &&
                                    lowRiskCountries.ContainsKey(personalData.CountryFromID) &&
