@@ -21,12 +21,17 @@ namespace Lykke.Service.Tier.LimitUpdater
 {
     public class Program
     {
+        public static void Main(string[] args)
+        {
+            Execute(args).Wait();
+        }
+        
         //THIS CODE
         //1. Backups limit storage to new table
         //2. Delete items in limit storage if all the following conditions match: 
         // - user is in Advanced tier
         // - user's country is low risk
-        public static async Task Main(string[] args)
+        private static async Task Execute(string[] args)
         {
             if (args.Length != 1)
             {
