@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage.Tables;
+using Common;
 using Lykke.Common;
 using Lykke.Common.Log;
 using Lykke.HttpClientGenerator.Infrastructure;
@@ -121,9 +122,12 @@ namespace Lykke.Service.Tier.LimitUpdater
                     continue;
                 }
 
+                var countryFromId = FormatCountryCode(personalData.CountryFromID, nameof(personalData.CountryFromID), limit.ClientId);
+                var countryFromPOA = FormatCountryCode(personalData.CountryFromPOA, nameof(personalData.CountryFromPOA), limit.ClientId);
+
                 var shouldDelete = clientAccount.Tier == AccountTier.Advanced &&
-                                   lowRiskCountries.ContainsKey(personalData.CountryFromID) &&
-                                   lowRiskCountries.ContainsKey(personalData.CountryFromPOA);
+                                   lowRiskCountries.ContainsKey(countryFromId) &&
+                                   lowRiskCountries.ContainsKey(countryFromPOA);
                 if (shouldDelete)
                 {
                     selectedForDeletion.Add(limit);
@@ -131,7 +135,9 @@ namespace Lykke.Service.Tier.LimitUpdater
                 selectCount++;
                 var resolution = shouldDelete ? "DELETE" : "DO NOT TOUCH";
                 logger.Info($"{selectCount} of {existedLimits.Count}. " +
-                            $"ClientId: {limit.ClientId}, Tier: {clientAccount.Tier}, CountryFromID: {personalData.CountryFromID}, CountryFromPOA: {personalData.CountryFromPOA} " +
+                            $"ClientId: {limit.ClientId}, Tier: {clientAccount.Tier}, " +
+                            $"Original CountryFromID: {personalData.CountryFromID}, Original CountryFromPOA: {personalData.CountryFromPOA} " +
+                            $"Converted to iso3 CountryFromID: {countryFromId}, Converted to iso3 CountryFromPOA: {countryFromPOA} " +
                             $"Resolution : {resolution}");
 
             }
@@ -146,6 +152,26 @@ namespace Lykke.Service.Tier.LimitUpdater
             }
             
             logger.Info("All DONE");
+        }
+
+        private static string FormatCountryCode(string originalCountryCode, string propName, string clientId)
+        {
+            if (originalCountryCode == null)
+            {
+                throw new InvalidOperationException($"{propName} is null for {clientId}");
+            }
+
+            if (originalCountryCode.Length == 3)
+            {
+                return originalCountryCode;
+            }
+            
+            if (!CountryManager.CountryIso2ToIso3Links.ContainsKey(originalCountryCode))
+            {
+                throw new InvalidOperationException($"{propName} not found in iso3 dictionary for {clientId}");
+            }
+
+            return CountryManager.CountryIso2ToIso3Links[originalCountryCode];
         }
     }
 }
