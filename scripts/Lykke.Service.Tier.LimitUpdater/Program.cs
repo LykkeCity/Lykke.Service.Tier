@@ -127,17 +127,17 @@ namespace Lykke.Service.Tier.LimitUpdater
                     continue;
                 }
 
-                var countryFromIdResolved = TryFormatCountryCode(personalData.CountryFromID, out var countryFromId);
-                var counryFromPOAResolved = TryFormatCountryCode(personalData.CountryFromPOA, out var countryFromPOA);
+                var countryFromId = FormatCountryCode(personalData.CountryFromID);
+                var countryFromPOA = FormatCountryCode(personalData.CountryFromPOA);
 
-                if (!countryFromIdResolved)
+                if (countryFromId == null)
                 {
                     clientsForManualInvestigation.Add(limit.ClientId);
                     logger.Warning($"Not able to resolve CountryFromID for {limit.ClientId} : {personalData.CountryFromID}");
                     continue;
                 }
                 
-                if (!counryFromPOAResolved)
+                if (countryFromPOA == null)
                 {
                     clientsForManualInvestigation.Add(limit.ClientId);
                     logger.Warning($"Not able to resolve CountryFromPOA for {limit.ClientId} : {personalData.CountryFromPOA}");
@@ -175,28 +175,24 @@ namespace Lykke.Service.Tier.LimitUpdater
             logger.Info("All DONE");
         }
 
-        private static bool TryFormatCountryCode(string originalCountryCode,  out string formattedCode)
+        private static string FormatCountryCode(string originalCountryCode)
         {
             if (originalCountryCode == null)
             {
-                formattedCode = null;
-                return false;
+                return null;
             }
 
             if (originalCountryCode.Length == 3)
             {
-                formattedCode =  originalCountryCode;
-                return true;
+                return originalCountryCode;
             }
             
             if (!CountryManager.CountryIso2ToIso3Links.ContainsKey(originalCountryCode))
             {
-                formattedCode = null;
-                return false;
+                return null;
             }
 
-            formattedCode =  CountryManager.CountryIso2ToIso3Links[originalCountryCode];
-            return true;
+            return CountryManager.CountryIso2ToIso3Links[originalCountryCode];
         }
     }
 }
