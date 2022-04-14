@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureStorage.Tables;
+using Common;
 using Lykke.Common;
 using Lykke.Common.Log;
 using Lykke.HttpClientGenerator.Infrastructure;
@@ -121,9 +122,16 @@ namespace Lykke.Service.Tier.LimitUpdater
                     continue;
                 }
 
+                var countryFromId = personalData.CountryFromID.Length == 2
+                    ? CountryManager.CountryIso2ToIso3Links[personalData.CountryFromID]
+                    : personalData.CountryFromID;
+                var countryFromPOA = personalData.CountryFromPOA.Length == 2
+                    ? CountryManager.CountryIso2ToIso3Links[personalData.CountryFromPOA]
+                    : personalData.CountryFromPOA;
+
                 var shouldDelete = clientAccount.Tier == AccountTier.Advanced &&
-                                   lowRiskCountries.ContainsKey(personalData.CountryFromID) &&
-                                   lowRiskCountries.ContainsKey(personalData.CountryFromPOA);
+                                   lowRiskCountries.ContainsKey(countryFromId) &&
+                                   lowRiskCountries.ContainsKey(countryFromPOA);
                 if (shouldDelete)
                 {
                     selectedForDeletion.Add(limit);
@@ -131,7 +139,9 @@ namespace Lykke.Service.Tier.LimitUpdater
                 selectCount++;
                 var resolution = shouldDelete ? "DELETE" : "DO NOT TOUCH";
                 logger.Info($"{selectCount} of {existedLimits.Count}. " +
-                            $"ClientId: {limit.ClientId}, Tier: {clientAccount.Tier}, CountryFromID: {personalData.CountryFromID}, CountryFromPOA: {personalData.CountryFromPOA} " +
+                            $"ClientId: {limit.ClientId}, Tier: {clientAccount.Tier}, " +
+                            $"Original CountryFromID: {personalData.CountryFromID}, Original CountryFromPOA: {personalData.CountryFromPOA} " +
+                            $"Converted to iso3 CountryFromID: {countryFromId}, Converted to iso3 CountryFromPOA: {countryFromPOA} " +
                             $"Resolution : {resolution}");
 
             }
