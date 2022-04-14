@@ -106,25 +106,44 @@ namespace Lykke.Service.Tier.LimitUpdater
             var selectCount = 0;
             var selectedForDeletion = new List<LimitEntity>();
             var lowRiskCountries = settings.CurrentValue.TierService.Countries[CountryRisk.Low].ToDictionary(p => p);
+
+            var clientsForManualInvestigation = new List<string>();
             foreach (var limit in existedLimits)
             {
+                selectCount++;
                 var personalData = await personalDataService.GetAsync(limit.ClientId);
                 var clientAccount = await clientAccountService.ClientAccountInformation.GetByIdAsync(limit.ClientId);
                 if (personalData == null)
                 {
+                    clientsForManualInvestigation.Add(limit.ClientId);
                     logger.Warning($"Personal data is null for {limit.ClientId}");
                     continue;
                 }
                 
                 if (clientAccount == null)
                 {
+                    clientsForManualInvestigation.Add(limit.ClientId);
                     logger.Warning($"clientAccount is null for {limit.ClientId}");
                     continue;
                 }
 
-                var countryFromId = FormatCountryCode(personalData.CountryFromID, nameof(personalData.CountryFromID), limit.ClientId);
-                var countryFromPOA = FormatCountryCode(personalData.CountryFromPOA, nameof(personalData.CountryFromPOA), limit.ClientId);
+                var countryFromId = FormatCountryCode(personalData.CountryFromID);
+                var countryFromPOA = FormatCountryCode(personalData.CountryFromPOA);
 
+                if (countryFromId == null)
+                {
+                    clientsForManualInvestigation.Add(limit.ClientId);
+                    logger.Warning($"Not able to resolve CountryFromID for {limit.ClientId} : {personalData.CountryFromID}");
+                    continue;
+                }
+                
+                if (countryFromPOA == null)
+                {
+                    clientsForManualInvestigation.Add(limit.ClientId);
+                    logger.Warning($"Not able to resolve CountryFromPOA for {limit.ClientId} : {personalData.CountryFromPOA}");
+                    continue;
+                }
+                
                 var shouldDelete = clientAccount.Tier == AccountTier.Advanced &&
                                    lowRiskCountries.ContainsKey(countryFromId) &&
                                    lowRiskCountries.ContainsKey(countryFromPOA);
@@ -132,7 +151,7 @@ namespace Lykke.Service.Tier.LimitUpdater
                 {
                     selectedForDeletion.Add(limit);
                 }
-                selectCount++;
+                
                 var resolution = shouldDelete ? "DELETE" : "DO NOT TOUCH";
                 logger.Info($"{selectCount} of {existedLimits.Count}. " +
                             $"ClientId: {limit.ClientId}, Tier: {clientAccount.Tier}, " +
@@ -141,6 +160,8 @@ namespace Lykke.Service.Tier.LimitUpdater
                             $"Resolution : {resolution}");
 
             }
+            
+            logger.Warning($"Need to  manually investigate {clientsForManualInvestigation.Count} clients : {string.Join(", ", clientsForManualInvestigation)}");
             
             logger.Info($"Deleting {selectedForDeletion.Count} items");
             var deleteCounter = 0;
@@ -154,11 +175,11 @@ namespace Lykke.Service.Tier.LimitUpdater
             logger.Info("All DONE");
         }
 
-        private static string FormatCountryCode(string originalCountryCode, string propName, string clientId)
+        private static string FormatCountryCode(string originalCountryCode)
         {
             if (originalCountryCode == null)
             {
-                throw new InvalidOperationException($"{propName} is null for {clientId}");
+                return null;
             }
 
             if (originalCountryCode.Length == 3)
@@ -168,7 +189,7 @@ namespace Lykke.Service.Tier.LimitUpdater
             
             if (!CountryManager.CountryIso2ToIso3Links.ContainsKey(originalCountryCode))
             {
-                throw new InvalidOperationException($"{propName} not found in iso3 dictionary for {clientId}");
+                return null;
             }
 
             return CountryManager.CountryIso2ToIso3Links[originalCountryCode];
