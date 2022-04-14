@@ -122,12 +122,8 @@ namespace Lykke.Service.Tier.LimitUpdater
                     continue;
                 }
 
-                var countryFromId = personalData.CountryFromID.Length == 2
-                    ? CountryManager.CountryIso2ToIso3Links[personalData.CountryFromID]
-                    : personalData.CountryFromID;
-                var countryFromPOA = personalData.CountryFromPOA.Length == 2
-                    ? CountryManager.CountryIso2ToIso3Links[personalData.CountryFromPOA]
-                    : personalData.CountryFromPOA;
+                var countryFromId = FormatCountryCode(personalData.CountryFromID, nameof(personalData.CountryFromID), limit.ClientId);
+                var countryFromPOA = FormatCountryCode(personalData.CountryFromPOA, nameof(personalData.CountryFromPOA), limit.ClientId);
 
                 var shouldDelete = clientAccount.Tier == AccountTier.Advanced &&
                                    lowRiskCountries.ContainsKey(countryFromId) &&
@@ -156,6 +152,26 @@ namespace Lykke.Service.Tier.LimitUpdater
             }
             
             logger.Info("All DONE");
+        }
+
+        private static string FormatCountryCode(string originalCountryCode, string propName, string clientId)
+        {
+            if (originalCountryCode == null)
+            {
+                throw new InvalidOperationException($"{propName} is null for {clientId}");
+            }
+
+            if (originalCountryCode.Length == 3)
+            {
+                return originalCountryCode;
+            }
+            
+            if (!CountryManager.CountryIso2ToIso3Links.ContainsKey(originalCountryCode))
+            {
+                throw new InvalidOperationException($"{propName} not found in iso3 dictionary for {clientId}");
+            }
+
+            return CountryManager.CountryIso2ToIso3Links[originalCountryCode];
         }
     }
 }
