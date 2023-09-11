@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using AutoMapper;
 using Lykke.Cqrs;
@@ -54,6 +54,9 @@ namespace Lykke.Service.Tier.Workflow.Sagas
             IPersonalData pd = pdTask.Result;
 
             if (clientAccount == null)
+                return;
+
+            if (pd == null)
                 return;
 
             await _limitsService.SaveDepositOperationAsync(_mapper.Map<DepositOperation>(evt));
